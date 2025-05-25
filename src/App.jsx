@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import { CssBaseline } from '@mui/material';
 import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
+import Dashboard from './pages/dashboard';
 import Casos from './pages/Casos'; // ← Importa o componente completo que criamos
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
