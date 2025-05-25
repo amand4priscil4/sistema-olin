@@ -3,7 +3,7 @@ import axios from 'axios';
 
 // Cria instância do axios
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'https://case-api-icfc.onrender.com/api', // URL base para login/auth
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/auth', // URL base para login/auth
   timeout: 10000 // 10 segundos de timeout
 });
 
