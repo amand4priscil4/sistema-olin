@@ -4,7 +4,7 @@ import { ThemeProvider } from '@mui/material/styles';
 import { CssBaseline } from '@mui/material';
 import Login from './pages/Login';
 import dashboard from './pages/dashboard';
-import Casos from './pages/Casos'; // ← Importa o componente completo que criamos
+import Casos from './pages/Casos'; 
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 
