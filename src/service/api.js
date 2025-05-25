@@ -3,7 +3,7 @@ import axios from 'axios';
 
 // Cria instância do axios
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/auth', // URL base para login/auth
+  baseURL: import.meta.env.VITE_API_URL || 'https://case-api-icfc.onrender.com/api', // URL base para login/auth
   timeout: 10000 // 10 segundos de timeout
 });
 
@@ -44,48 +44,23 @@ api.interceptors.response.use(
   }
 );
 
-// Função auxiliar para requisições para a API de casos
+// Função auxiliar para requisições para a API de casos (usando a instância principal)
 export const casesApi = {
   get: url => {
-    const token = localStorage.getItem('token');
-    return axios.get(url, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      },
-      timeout: 10000
-    });
+    // Usa a instância api principal que já tem a baseURL correta
+    return api.get(url);
   },
 
   post: (url, data) => {
-    const token = localStorage.getItem('token');
-    return axios.post(url, data, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      timeout: 10000
-    });
+    return api.post(url, data);
   },
 
   put: (url, data) => {
-    const token = localStorage.getItem('token');
-    return axios.put(url, data, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      timeout: 10000
-    });
+    return api.put(url, data);
   },
 
   delete: url => {
-    const token = localStorage.getItem('token');
-    return axios.delete(url, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      },
-      timeout: 10000
-    });
+    return api.delete(url);
   }
 };
 

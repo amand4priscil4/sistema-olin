@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import { CssBaseline } from '@mui/material';
 import Login from './pages/Login';
-import Dashboard from './pages/dashboard';
+import Dashboard from './pages/Dashboard';
 import Casos from './pages/Casos'; 
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -68,10 +68,10 @@ function App() {
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<Login />} />
           <Route 
-  path="/dashboard" 
+  path="/Dashboard" 
   element={
     <ProtectedRoute allowedRoles={['admin', 'perito', 'assistente']}>
-      <dashboard /> ← ❌ errado (deve começar com maiúscula!)
+      <Dashboard /> ← ❌ errado (deve começar com maiúscula!)
     </ProtectedRoute>
   } 
 />

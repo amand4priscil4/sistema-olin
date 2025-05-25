@@ -15,7 +15,7 @@ import {
 } from '@mui/icons-material';
 import Layout from '../components/Layout';
 
-function dashboard() {
+function Dashboard() {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
@@ -293,4 +293,4 @@ function dashboard() {
   );
 }
 
-export default dashboard;
+export default Dashboard;

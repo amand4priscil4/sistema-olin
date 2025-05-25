@@ -39,7 +39,7 @@ function Login() {
 
       // Navega para o dashboard após login bem-sucedido
       setTimeout(() => {
-        navigate('/dashboard');
+        navigate('/Dashboard');
       }, 1500);
     } catch (erro) {
       console.error(erro);
