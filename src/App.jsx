@@ -68,13 +68,14 @@ function App() {
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<Login />} />
           <Route 
-            path="/dashboard" 
-            element={
-              <ProtectedRoute allowedRoles={['admin', 'perito', 'assistente']}>
-                <dashboard />
-              </ProtectedRoute>
-            } 
-          />
+  path="/dashboard" 
+  element={
+    <ProtectedRoute allowedRoles={['admin', 'perito', 'assistente']}>
+      <dashboard /> ← ❌ errado (deve começar com maiúscula!)
+    </ProtectedRoute>
+  } 
+/>
+
           <Route 
             path="/casos" 
             element={
