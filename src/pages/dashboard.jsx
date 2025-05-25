@@ -15,7 +15,7 @@ import {
 } from '@mui/icons-material';
 import Layout from '../components/Layout';
 
-function Dashboard() {
+function dashboard() {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
