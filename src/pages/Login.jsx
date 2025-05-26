@@ -26,7 +26,7 @@ function Login() {
   try {
     // Primeiro "acorda" a API se necessário
     console.log('Testando conexão com API...');
-    await api.get('/api'); // Faz uma requisição simples primeiro
+    await api.get('https://case-api-icfc.onrender.com/'); // Faz uma requisição simples primeiro
     
     console.log('API respondeu, fazendo login...');
     const resposta = await api.post('https://case-api-icfc.onrender.com/api/login', {
