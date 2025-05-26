@@ -20,32 +20,47 @@ function Login() {
   const navigate = useNavigate();
 
   const handleLogin = async e => {
-    e.preventDefault();
+  e.preventDefault();
+  setMensagem('Conectando ao servidor... (pode levar alguns segundos)');
 
-    try {
-      const resposta = await api.post('/login', {
-        email: email.trim(),
-        password: senha.trim()
-      });
+  try {
+    // Primeiro "acorda" a API se necessário
+    console.log('Testando conexão com API...');
+    await api.get('/'); // Faz uma requisição simples primeiro
+    
+    console.log('API respondeu, fazendo login...');
+    const resposta = await api.post('https://case-api-icfc.onrender.com/api/login', {
+      email: email.trim(),
+      password: senha.trim()
+    });
 
-      const token = resposta.data.token;
+    const token = resposta.data.token;
+    const userData = resposta.data.user;
 
-      localStorage.setItem('token', token);
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(userData));
 
-      // Testa a rota protegida com o token automaticamente
-      const respostaProtegida = await api.get('/protegido');
+    setMensagem(`Login realizado com sucesso! Bem-vindo, ${userData.email}`);
 
-      setMensagem(`Login autenticado com sucesso: ${respostaProtegida.data.mensagem}`);
+    // Navega para o dashboard após login bem-sucedido
+    setTimeout(() => {
+      navigate('/Dashboard');
+    }, 1500);
 
-      // Navega para o dashboard após login bem-sucedido
-      setTimeout(() => {
-        navigate('/Dashboard');
-      }, 1500);
-    } catch (erro) {
-      console.error(erro);
-      setMensagem('Erro ao fazer login ou acessar rota protegida.');
+  } catch (erro) {
+    console.error('Erro completo:', erro);
+    
+    if (erro.code === 'ECONNABORTED') {
+      setMensagem('⏱️ Timeout: O servidor demorou para responder. Tente novamente - a API pode estar iniciando.');
+    } else if (erro.response?.status === 401) {
+      setMensagem('❌ Credenciais inválidas. Verifique email e senha.');
+    } else if (erro.response?.status === 404) {
+      setMensagem('❌ Rota não encontrada. Verifique a configuração da API.');
+    } else {
+      setMensagem(`❌ Erro: ${erro.message || 'Erro desconhecido'}`);
     }
-  };
+  }
+};
 
   return (
     <Box

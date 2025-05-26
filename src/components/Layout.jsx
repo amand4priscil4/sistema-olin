@@ -31,7 +31,6 @@ function Layout({ children, pageTitle = "Dashboard" }) {
         component="main"
         sx={{
           flexGrow: 1,
-          width: { lg: `calc(100% - ${drawerWidth}px)` },
           height: '100vh',
           overflow: 'hidden',
           display: 'flex',
@@ -46,14 +45,14 @@ function Layout({ children, pageTitle = "Dashboard" }) {
 
         {/* Page content */}
         <Box sx={{ 
-          flex: 1, 
-          overflow: 'auto',
-          bgcolor: '#F8F9FA',
-          p: { xs: 2, md: 3 },
-          display: 'flex',
-          flexDirection: 'column'
+         flex: 1, 
+         overflow: 'auto',
+         bgcolor: '#F8F9FA',
+         p: { xs: 2, md: 3 },  // ✅ RECOLOCAR o padding que removemos
+         display: 'flex',
+         flexDirection: 'column'
         }}>
-          {children}
+        {children}
         </Box>
 
         {/* Footer */}

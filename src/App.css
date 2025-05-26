@@ -1,8 +1,9 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+#root {    /* ← OU remova essa linha */
+  margin: 0;          /* ← SEM auto */
+  padding: 0;         /* ← SEM padding */
+  text-align: left;   /* ← Melhor para interface */
+  width: 100%;        /* ← ADICIONAR */
+  height: 100vh;      /* ← ADICIONAR */
 }
 
 .logo {

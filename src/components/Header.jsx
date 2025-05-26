@@ -1,5 +1,4 @@
-// src/components/Header.jsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   AppBar,
@@ -26,6 +25,52 @@ import {
 function Header({ onMobileMenuOpen, pageTitle = "Dashboard" }) {
   const [anchorEl, setAnchorEl] = useState(null);
   const navigate = useNavigate();
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      try {
+        const parsedUser = JSON.parse(userData);
+        setUser(parsedUser);
+      } catch (error) {
+        console.error('Erro ao carregar dados do usuário:', error);
+      }
+    }
+  }, []);
+
+  // ✅ FUNÇÃO para formatar nome do usuário
+  const formatUserName = (name) => {
+    if (!name) return 'Usuário';
+    
+    // Se for um nome completo, pegar primeiro e último nome
+    const nameParts = name.split(' ');
+    if (nameParts.length > 1) {
+      return `${nameParts[0]} ${nameParts[nameParts.length - 1]}`;
+    }
+    return name;
+  };
+
+  // ✅ FUNÇÃO para gerar iniciais do avatar
+  const getUserInitials = (name) => {
+    if (!name) return 'U';
+    
+    const nameParts = name.split(' ');
+    if (nameParts.length > 1) {
+      return `${nameParts[0][0]}${nameParts[nameParts.length - 1][0]}`.toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  };
+
+  // ✅ FUNÇÃO para formatar role do usuário
+  const formatUserRole = (role) => {
+    const roles = {
+      'admin': 'Administrador',
+      'perito': 'Perito',
+      'assistente': 'Assistente'
+    };
+    return roles[role] || role;
+  };
 
   const handleProfileMenuOpen = (event) => {
     setAnchorEl(event.currentTarget);
@@ -50,12 +95,12 @@ function Header({ onMobileMenuOpen, pageTitle = "Dashboard" }) {
         position="static" 
         elevation={0}
         sx={{ 
-          bgcolor: 'white',
+          bgcolor: '#CDD5DB',
           borderBottom: '1px solid rgba(75, 99, 130, 0.08)',
           zIndex: (theme) => theme.zIndex.drawer + 1
         }}
       >
-        <Toolbar sx={{ minHeight: '70px !important' }}>
+        <Toolbar sx={{ minHeight: '50px !important' }}>
           {/* Mobile menu button */}
           <IconButton
             color="inherit"
@@ -78,38 +123,6 @@ function Header({ onMobileMenuOpen, pageTitle = "Dashboard" }) {
           >
             {pageTitle}
           </Typography>
-
-          {/* Search */}
-          <Box sx={{ 
-            display: { xs: 'none', sm: 'flex' },
-            alignItems: 'center', 
-            bgcolor: '#F8F9FA', 
-            borderRadius: 3, 
-            px: 2, 
-            py: 1,
-            mr: 2,
-            minWidth: 300,
-            border: '1px solid rgba(75, 99, 130, 0.1)',
-            '&:hover': {
-              bgcolor: '#F1F3F4',
-              borderColor: 'rgba(75, 99, 130, 0.2)',
-            },
-            '&:focus-within': {
-              bgcolor: 'white',
-              borderColor: '#4B6382',
-              boxShadow: '0 0 0 2px rgba(75, 99, 130, 0.1)',
-            }
-          }}>
-            <SearchIcon sx={{ color: '#4B6382', mr: 1 }} />
-            <InputBase
-              placeholder="Buscar..."
-              sx={{ 
-                color: '#071739', 
-                flex: 1,
-                fontSize: '0.9rem'
-              }}
-            />
-          </Box>
 
           {/* Mobile search */}
           <IconButton 
@@ -155,7 +168,8 @@ function Header({ onMobileMenuOpen, pageTitle = "Dashboard" }) {
                 fontSize: '0.9rem'
               }}
             >
-              DS
+              {/* ✅ USAR iniciais do usuário logado */}
+              {getUserInitials(user?.name)}
             </Avatar>
           </IconButton>
         </Toolbar>
@@ -191,11 +205,19 @@ function Header({ onMobileMenuOpen, pageTitle = "Dashboard" }) {
       >
         <Box sx={{ px: 2, py: 1.5 }}>
           <Typography variant="subtitle2" sx={{ color: '#071739', fontWeight: 600 }}>
-            Dr. Silva
+            {/* ✅ USAR nome do usuário logado */}
+            {formatUserName(user?.name) || 'Usuário'}
           </Typography>
           <Typography variant="caption" sx={{ color: '#4B6382' }}>
-            silva@olin.com
+            {/* ✅ USAR email do usuário logado */}
+            {user?.email || 'email@exemplo.com'}
           </Typography>
+          {/* ✅ ADICIONAR role do usuário */}
+          {user?.role && (
+            <Typography variant="caption" sx={{ color: '#A68866', fontSize: '0.7rem', display: 'block' }}>
+              {formatUserRole(user.role)}
+            </Typography>
+          )}
         </Box>
         
         <Divider sx={{ mx: 1 }} />
@@ -203,11 +225,6 @@ function Header({ onMobileMenuOpen, pageTitle = "Dashboard" }) {
         <MenuItem onClick={handleProfileMenuClose}>
           <AccountIcon sx={{ mr: 2, color: '#4B6382' }} />
           Meu Perfil
-        </MenuItem>
-        
-        <MenuItem onClick={handleProfileMenuClose}>
-          <SettingsIcon sx={{ mr: 2, color: '#4B6382' }} />
-          Configurações
         </MenuItem>
         
         <Divider sx={{ mx: 1 }} />

@@ -1,66 +1,67 @@
+// src/service/api.js
 import axios from 'axios';
 
-// Cria instância do axios
+// Base URL da sua API - ✅ VERIFICAR SE ESTA URL ESTÁ CORRETA
+const API_BASE_URL = 'https://case-api-icfc.onrender.com';
+
+// Criar instância do axios com configuração base
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'https://case-api-icfc.onrender.com/api', 
-  timeout: 10000 // 10 segundos de timeout
+  baseURL: API_BASE_URL,
+  timeout: 30000, // 30 segundos
+  headers: {
+    'Content-Type': 'application/json',
+  }
 });
+
+// Log para debug - remover em produção
+console.log('🔧 API Base URL configurada:', API_BASE_URL);
 
 // Interceptor para adicionar token automaticamente
 api.interceptors.request.use(
-  config => {
+  (config) => {
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    
+    // Log da requisição para debug
+    console.log(`🌐 API Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
+    
     return config;
   },
-  error => {
+  (error) => {
+    console.error('❌ Erro na configuração da requisição:', error);
     return Promise.reject(error);
   }
 );
 
-// Interceptor para lidar com respostas e erros
+// Interceptor para tratar respostas e erros
 api.interceptors.response.use(
-  response => {
+  (response) => {
+    console.log(`✅ API Response: ${response.status} - ${response.config.method?.toUpperCase()} ${response.config.url}`);
     return response;
   },
-  error => {
-    if (error.code === 'ERR_NETWORK') {
-      console.error('Erro de conexão: Verifique se o servidor está rodando');
-      return Promise.reject(
-        new Error('Não foi possível conectar ao servidor. Verifique se o servidor está rodando.')
-      );
+  (error) => {
+    // Log detalhado do erro
+    if (error.response) {
+      console.error(`❌ API Error: ${error.response.status} - ${error.response.config.method?.toUpperCase()} ${error.response.config.url}`);
+      console.error('Response data:', error.response.data);
+    } else if (error.request) {
+      console.error('❌ Network Error - Sem resposta da API:', error.request);
+    } else {
+      console.error('❌ Request Error:', error.message);
     }
-
-    // Se token expirou ou não autorizado, redireciona para login
+    
+    // Se token expirou ou não autorizado
     if (error.response?.status === 401) {
+      console.log('🔐 Token expirado ou inválido, redirecionando para login...');
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';
     }
+    
     return Promise.reject(error);
   }
 );
-
-// Função auxiliar para requisições para a API de casos (usando a instância principal)
-export const casesApi = {
-  get: url => {
-    // Usa a instância api principal que já tem a baseURL correta
-    return api.get(url);
-  },
-
-  post: (url, data) => {
-    return api.post(url, data);
-  },
-
-  put: (url, data) => {
-    return api.put(url, data);
-  },
-
-  delete: url => {
-    return api.delete(url);
-  }
-};
 
 export default api;

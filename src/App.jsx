@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard';
 import Casos from './pages/Casos'; 
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
+import VerCaso from './pages/VerCaso';
 
 // Tema inline como fallback
 import { createTheme } from '@mui/material/styles';
@@ -71,7 +72,7 @@ function App() {
   path="/Dashboard" 
   element={
     <ProtectedRoute allowedRoles={['admin', 'perito', 'assistente']}>
-      <Dashboard /> ← ❌ errado (deve começar com maiúscula!)
+      <Dashboard /> 
     </ProtectedRoute>
   } 
 />
@@ -88,6 +89,7 @@ function App() {
           <Route path="/historico" element={<Historico />} />
           <Route path="/usuarios" element={<Usuarios />} />
           <Route path="/ajustes" element={<Ajustes />} />
+          <Route path="/casos/ver/:id" element={<VerCaso />} />
         </Routes>
       </BrowserRouter>
     </ThemeProvider>

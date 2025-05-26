@@ -106,20 +106,6 @@ function Footer() {
           </Link>
         </Box>
       </Box>
-
-      {/* Version info */}
-      <Box sx={{ mt: 1, textAlign: 'center' }}>
-        <Typography 
-          variant="caption" 
-          sx={{ 
-            color: '#A68658',
-            fontSize: '0.7rem',
-            fontWeight: 500
-          }}
-        >
-          Versão 1.0.0 | Build 2025.01
-        </Typography>
-      </Box>
     </Box>
   );
 }
