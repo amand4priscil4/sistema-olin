@@ -27,7 +27,9 @@ import {
   DialogActions,
   DialogContent,
   DialogContentText,
-  DialogTitle
+  DialogTitle,
+  FormLabel,
+  Snackbar
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -35,10 +37,11 @@ import {
   Visibility as ViewIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  Refresh as RefreshIcon
+  Refresh as RefreshIcon,
+  Close as CloseIcon
 } from '@mui/icons-material';
 import Layout from '../components/Layout';
-import { casesApi } from '../service/api';
+import api from '../service/api';
 
 function Casos() {
   const [casos, setCasos] = useState([]);
@@ -52,13 +55,51 @@ function Casos() {
   const [user, setUser] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [casoToDelete, setCasoToDelete] = useState(null);
+  
+  // Estados do Modal de Novo Caso
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalLoading, setModalLoading] = useState(false);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', type: 'success' });
+  const [formData, setFormData] = useState({
+    titulo: '',
+    tipo: '',
+    descricao: '',
+    data: new Date().toISOString().split('T')[0], // Data atual formatada
+    status: 'em andamento',
+    peritoResponsavel: '',
+    localDoCaso: ''
+  });
+
+  // Tipos de casos disponíveis na API
+  const tiposCaso = [
+    'acidente',
+    'identificação de vítima',
+    'exame criminal',
+    'exumação',
+    'violência doméstica',
+    'avaliação de idade',
+    'avaliação de lesões',
+    'avaliação de danos corporais'
+  ];
+
+  const statusOptions = [
+    'em andamento',
+    'finalizado',
+    'arquivado'
+  ];
 
   // Recupera dados do usuário logado
   useEffect(() => {
     const userData = localStorage.getItem('user');
     if (userData) {
       try {
-        setUser(JSON.parse(userData));
+        const parsedUser = JSON.parse(userData);
+        setUser(parsedUser);
+        // Define o usuário logado como perito responsável por padrão
+        setFormData(prev => ({
+          ...prev,
+          peritoResponsavel: parsedUser.id
+        }));
       } catch (error) {
         console.error('Erro ao parsear dados do usuário:', error);
         setError('Erro ao carregar dados do usuário');
@@ -72,7 +113,7 @@ function Casos() {
       setLoading(true);
       setError('');
       
-      const response = await casesApi.casos.getAll();
+      const response = await api.get('/casos');
       let allCasos = response.data;
 
       // Filtra casos pelo usuário logado (perito responsável)
@@ -137,10 +178,77 @@ function Casos() {
     setPage(newPage);
   };
 
+  // Funções do Modal
   const handleNovoCaso = () => {
-    // Implementar modal ou navegação para criar novo caso
-    console.log('Criar novo caso');
-    // Você pode adicionar navegação para uma página de criação ou abrir um modal
+    setModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setModalOpen(false);
+    setFormData({
+      titulo: '',
+      tipo: '',
+      descricao: '',
+      data: new Date().toISOString().split('T')[0],
+      status: 'em andamento',
+      peritoResponsavel: user?.id || '',
+      localDoCaso: ''
+    });
+  };
+
+  const handleFormChange = (field) => (event) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: event.target.value
+    }));
+  };
+
+  const handleSubmitCaso = async () => {
+    try {
+      setModalLoading(true);
+
+      // Validação básica
+      if (!formData.titulo || !formData.tipo || !formData.descricao || !formData.localDoCaso) {
+        setSnackbar({
+          open: true,
+          message: 'Por favor, preencha todos os campos obrigatórios.',
+          type: 'error'
+        });
+        return;
+      }
+
+      // Cria o caso via API
+      const response = await api.post('/casos', {
+        titulo: formData.titulo,
+        tipo: formData.tipo,
+        descricao: formData.descricao,
+        data: formData.data,
+        status: formData.status,
+        peritoResponsavel: formData.peritoResponsavel,
+        localDoCaso: formData.localDoCaso
+      });
+
+      // Adiciona o novo caso à lista
+      setCasos(prev => [response.data.caso, ...prev]);
+      
+      // Fecha modal e mostra sucesso
+      handleCloseModal();
+      setSnackbar({
+        open: true,
+        message: 'Caso criado com sucesso!',
+        type: 'success'
+      });
+
+    } catch (error) {
+      console.error('Erro ao criar caso:', error);
+      setSnackbar({
+        open: true,
+        message: error.response?.data?.message || 'Erro ao criar caso',
+        type: 'error'
+      });
+    } finally {
+      setModalLoading(false);
+    }
   };
 
   const handleViewCaso = (caso) => {
@@ -162,17 +270,25 @@ function Casos() {
     if (!casoToDelete) return;
 
     try {
-      await casesApi.casos.delete(casoToDelete._id);
+      await api.delete(`/casos/${casoToDelete._id}`);
       
       // Remove o caso da lista local
       setCasos(prev => prev.filter(c => c._id !== casoToDelete._id));
       setDeleteDialogOpen(false);
       setCasoToDelete(null);
       
-      console.log('Caso deletado com sucesso');
+      setSnackbar({
+        open: true,
+        message: 'Caso deletado com sucesso!',
+        type: 'success'
+      });
     } catch (error) {
       console.error('Erro ao deletar caso:', error);
-      setError('Erro ao deletar caso');
+      setSnackbar({
+        open: true,
+        message: 'Erro ao deletar caso',
+        type: 'error'
+      });
     }
   };
 
@@ -216,9 +332,9 @@ function Casos() {
         height: '100%', 
         display: 'flex', 
         flexDirection: 'column',
-        margin: { xs: -2, md: -3 }, // Remove margens do Layout
-        padding: { xs: 2, md: 3 }, // Adiciona padding interno
-        bgcolor: '#F8F9FA'
+        margin: { xs: -2, md: -3 },
+        padding: { xs: 2, md: 3 },
+        bgcolor: '#E3C39D'
       }}>
         {/* Error Alert */}
         {error && (
@@ -328,7 +444,7 @@ function Casos() {
             display: 'flex', 
             justifyContent: 'center', 
             alignItems: 'center', 
-            height: 'calc(100vh - 400px)', // Usa altura dinâmica
+            height: 'calc(100vh - 400px)',
             flexDirection: 'column'
           }}>
             <CircularProgress size={50} sx={{ color: '#071739', mb: 2 }} />
@@ -342,19 +458,19 @@ function Casos() {
             <Paper sx={{ 
               flex: 1, 
               overflow: 'hidden',
-              border: '1px solid rgba(75, 99, 130, 0.08)',
+              border: '1px solid rgba(164, 181, 196, 0.2)',
               boxShadow: '0 4px 24px rgba(7, 23, 57, 0.06)',
               borderRadius: 3
             }}>
-              <TableContainer sx={{ height: 'calc(100vh - 350px)' }}> {/* Altura dinâmica */}
+              <TableContainer sx={{ height: 'calc(100vh - 350px)' }}>
                 <Table stickyHeader>
                   <TableHead>
                     <TableRow>
                       <TableCell sx={{ 
-                        bgcolor: '#F8F9FA', 
+                        bgcolor: '#A4B5C4', 
                         color: '#071739', 
                         fontWeight: 600,
-                        borderBottom: '2px solid rgba(75, 99, 130, 0.1)',
+                        borderBottom: '2px solid rgba(164, 181, 196, 0.3)',
                         fontSize: '0.95rem'
                       }}>
                         Título
@@ -416,7 +532,7 @@ function Casos() {
                               ? 'Nenhum caso encontrado para este usuário' 
                               : 'Nenhum caso encontrado com os filtros aplicados'}
                           </Typography>
-                          <Typography variant="body2" sx={{ color: '#A68658' }}>
+                          <Typography variant="body2" sx={{ color: '#A68866' }}>
                             {casos.length === 0 ? 'Crie seu primeiro caso clicando no botão "Novo"' : 'Tente ajustar os filtros de busca'}
                           </Typography>
                         </TableCell>
@@ -427,12 +543,12 @@ function Casos() {
                           key={caso._id}
                           sx={{ 
                             '&:hover': { 
-                              bgcolor: 'rgba(75, 99, 130, 0.03)',
+                              bgcolor: 'rgba(164, 181, 196, 0.08)',
                               transform: 'scale(1.001)',
                               transition: 'all 0.2s ease'
                             },
                             '&:nth-of-type(even)': {
-                              bgcolor: 'rgba(248, 249, 250, 0.5)'
+                              bgcolor: 'rgba(205, 213, 219, 0.3)'
                             },
                             cursor: 'pointer'
                           }}
@@ -494,7 +610,7 @@ function Casos() {
                                   }}
                                   sx={{ 
                                     color: '#4B6382',
-                                    '&:hover': { bgcolor: 'rgba(75, 99, 130, 0.1)' }
+                                    '&:hover': { bgcolor: 'rgba(164, 181, 196, 0.15)' }
                                   }}
                                 >
                                   <ViewIcon fontSize="small" />
@@ -508,8 +624,8 @@ function Casos() {
                                     handleEditCaso(caso);
                                   }}
                                   sx={{ 
-                                    color: '#A68658',
-                                    '&:hover': { bgcolor: 'rgba(166, 134, 88, 0.1)' }
+                                    color: '#A68866',
+                                    '&:hover': { bgcolor: 'rgba(166, 136, 102, 0.1)' }
                                   }}
                                 >
                                   <EditIcon fontSize="small" />
@@ -550,14 +666,14 @@ function Casos() {
                 p: 3,
                 bgcolor: 'white',
                 borderRadius: 3,
-                border: '1px solid rgba(75, 99, 130, 0.08)',
+                border: '1px solid rgba(164, 181, 196, 0.2)',
                 boxShadow: '0 2px 12px rgba(7, 23, 57, 0.04)'
               }}>
                 <Box>
                   <Typography variant="body2" sx={{ color: '#4B6382', fontSize: '0.95rem' }}>
                     Mostrando <strong>{startIndex + 1}</strong> a <strong>{Math.min(endIndex, filteredCasos.length)}</strong> de <strong>{filteredCasos.length}</strong> casos
                   </Typography>
-                  <Typography variant="caption" sx={{ color: '#A68658' }}>
+                  <Typography variant="caption" sx={{ color: '#A68866' }}>
                     Página {page} de {totalPages}
                   </Typography>
                 </Box>
@@ -582,7 +698,7 @@ function Casos() {
                         }
                       },
                       '&:hover': {
-                        bgcolor: 'rgba(75, 99, 130, 0.1)',
+                        bgcolor: 'rgba(164, 181, 196, 0.15)',
                       }
                     }
                   }}
@@ -591,6 +707,191 @@ function Casos() {
             )}
           </>
         )}
+
+        {/* Modal de Novo Caso */}
+        <Dialog
+          open={modalOpen}
+          onClose={handleCloseModal}
+          maxWidth="md"
+          fullWidth
+          PaperProps={{
+            sx: {
+              borderRadius: 3,
+              boxShadow: '0 24px 48px rgba(7, 23, 57, 0.15)'
+            }
+          }}
+        >
+          <DialogTitle sx={{ 
+            bgcolor: '#071739', 
+            color: 'white', 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            pb: 2
+          }}>
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              Criar Novo Caso
+            </Typography>
+            <IconButton 
+              onClick={handleCloseModal}
+              sx={{ color: 'white', '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' } }}
+            >
+              <CloseIcon />
+            </IconButton>
+          </DialogTitle>
+          
+          <DialogContent sx={{ p: 4 }}>
+            <Grid container spacing={3}>
+              {/* Título */}
+              <Grid item xs={12}>
+                <FormLabel sx={{ color: '#071739', fontWeight: 600, mb: 1, display: 'block' }}>
+                  Título do Caso *
+                </FormLabel>
+                <TextField
+                  fullWidth
+                  placeholder="Ex: Identificação de vítima de acidente..."
+                  value={formData.titulo}
+                  onChange={handleFormChange('titulo')}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      '&:hover fieldset': { borderColor: '#4B6382' },
+                      '&.Mui-focused fieldset': { borderColor: '#071739' }
+                    }
+                  }}
+                />
+              </Grid>
+
+              {/* Tipo */}
+              <Grid item xs={12} md={6}>
+                <FormLabel sx={{ color: '#071739', fontWeight: 600, mb: 1, display: 'block' }}>
+                  Tipo de Caso *
+                </FormLabel>
+                <FormControl fullWidth>
+                  <Select
+                    value={formData.tipo}
+                    onChange={handleFormChange('tipo')}
+                    displayEmpty
+                    sx={{
+                      '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#4B6382' },
+                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#071739' }
+                    }}
+                  >
+                    <MenuItem value="">Selecione o tipo</MenuItem>
+                    {tiposCaso.map((tipo) => (
+                      <MenuItem key={tipo} value={tipo}>
+                        {tipo.charAt(0).toUpperCase() + tipo.slice(1)}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              {/* Status */}
+              <Grid item xs={12} md={6}>
+                <FormLabel sx={{ color: '#071739', fontWeight: 600, mb: 1, display: 'block' }}>
+                  Status
+                </FormLabel>
+                <FormControl fullWidth>
+                  <Select
+                    value={formData.status}
+                    onChange={handleFormChange('status')}
+                    sx={{
+                      '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#4B6382' },
+                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#071739' }
+                    }}
+                  >
+                    {statusOptions.map((status) => (
+                      <MenuItem key={status} value={status}>
+                        {status.charAt(0).toUpperCase() + status.slice(1)}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              {/* Data */}
+              <Grid item xs={12} md={6}>
+                <FormLabel sx={{ color: '#071739', fontWeight: 600, mb: 1, display: 'block' }}>
+                  Data do Caso
+                </FormLabel>
+                <TextField
+                  fullWidth
+                  type="date"
+                  value={formData.data}
+                  onChange={handleFormChange('data')}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      '&:hover fieldset': { borderColor: '#4B6382' },
+                      '&.Mui-focused fieldset': { borderColor: '#071739' }
+                    }
+                  }}
+                />
+              </Grid>
+
+              {/* Local do Caso */}
+              <Grid item xs={12} md={6}>
+                <FormLabel sx={{ color: '#071739', fontWeight: 600, mb: 1, display: 'block' }}>
+                  Local do Caso *
+                </FormLabel>
+                <TextField
+                  fullWidth
+                  placeholder="Ex: Rua das Flores, 123 - Centro"
+                  value={formData.localDoCaso}
+                  onChange={handleFormChange('localDoCaso')}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      '&:hover fieldset': { borderColor: '#4B6382' },
+                      '&.Mui-focused fieldset': { borderColor: '#071739' }
+                    }
+                  }}
+                />
+              </Grid>
+
+              {/* Descrição */}
+              <Grid item xs={12}>
+                <FormLabel sx={{ color: '#071739', fontWeight: 600, mb: 1, display: 'block' }}>
+                  Descrição do Caso *
+                </FormLabel>
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={4}
+                  placeholder="Descreva detalhadamente o caso, circunstâncias, evidências encontradas..."
+                  value={formData.descricao}
+                  onChange={handleFormChange('descricao')}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      '&:hover fieldset': { borderColor: '#4B6382' },
+                      '&.Mui-focused fieldset': { borderColor: '#071739' }
+                    }
+                  }}
+                />
+              </Grid>
+            </Grid>
+          </DialogContent>
+
+          <DialogActions sx={{ p: 3, pt: 0 }}>
+            <Button 
+              onClick={handleCloseModal}
+              sx={{ color: '#4B6382', minWidth: 100 }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleSubmitCaso}
+              variant="contained"
+              disabled={modalLoading}
+              sx={{
+                bgcolor: '#071739',
+                minWidth: 120,
+                '&:hover': { bgcolor: '#4B6382' },
+                '&:disabled': { bgcolor: '#ccc' }
+              }}
+            >
+              {modalLoading ? <CircularProgress size={20} color="inherit" /> : 'Criar Caso'}
+            </Button>
+          </DialogActions>
+        </Dialog>
 
         {/* Delete Confirmation Dialog */}
         <Dialog
@@ -621,6 +922,22 @@ function Casos() {
             </Button>
           </DialogActions>
         </Dialog>
+
+        {/* Snackbar para notificações */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        >
+          <Alert 
+            onClose={() => setSnackbar({ ...snackbar, open: false })} 
+            severity={snackbar.type}
+            sx={{ width: '100%' }}
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
       </Box>
     </Layout>
   );
