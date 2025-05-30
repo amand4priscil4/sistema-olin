@@ -69,13 +69,13 @@ function App() {
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<Login />} />
           <Route 
-  path="/Dashboard" 
-  element={
-    <ProtectedRoute allowedRoles={['admin', 'perito', 'assistente']}>
-      <Dashboard /> 
-    </ProtectedRoute>
-  } 
-/>
+            path="/Dashboard" 
+            element={
+              <ProtectedRoute allowedRoles={['admin', 'perito', 'assistente']}>
+                <Dashboard /> 
+              </ProtectedRoute>
+            } 
+          />
 
           <Route 
             path="/casos" 
@@ -85,11 +85,21 @@ function App() {
               </ProtectedRoute>
             } 
           />
+          
+          {/* ✅ CORRIGIDO: Adicionada proteção na rota VerCaso */}
+          <Route 
+            path="/casos/ver/:id" 
+            element={
+              <ProtectedRoute allowedRoles={['admin', 'perito', 'assistente']}>
+                <VerCaso />
+              </ProtectedRoute>
+            } 
+          />
+          
           <Route path="/banco-casos" element={<BancoCasos />} />
           <Route path="/historico" element={<Historico />} />
           <Route path="/usuarios" element={<Usuarios />} />
           <Route path="/ajustes" element={<Ajustes />} />
-          <Route path="/casos/ver/:id" element={<VerCaso />} />
         </Routes>
       </BrowserRouter>
     </ThemeProvider>

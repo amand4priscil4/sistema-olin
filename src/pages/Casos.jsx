@@ -218,7 +218,6 @@ function Casos() {
         return;
       }
 
-      // ✅ CORRIGIDO: Endpoint correto
       const response = await api.post('/api/casos', {
         titulo: formData.titulo,
         tipo: formData.tipo,
@@ -229,7 +228,6 @@ function Casos() {
         localDoCaso: formData.localDoCaso
       });
 
-      // ✅ CORRIGIDO: Resposta da API pode ser response.data.caso ou response.data
       const novoCaso = response.data.caso || response.data;
       setCasos(prev => [novoCaso, ...prev]);
       handleCloseModal();
@@ -253,7 +251,14 @@ function Casos() {
 
   const handleViewCaso = (caso) => {
     console.log('Navegando para visualizar caso:', caso._id);
-    // ✅ CORRIGIDO: Navegação relativa mais robusta
+    console.log('Objeto caso completo:', caso);
+    
+    // Verifica se o ID existe
+    if (!caso._id) {
+      console.error('ID do caso não encontrado!');
+      return;
+    }
+    
     navigate(`/casos/ver/${caso._id}`);
   };
 
@@ -266,7 +271,6 @@ function Casos() {
     if (!casoToDelete) return;
 
     try {
-      // ✅ CORRIGIDO: Endpoint correto para delete
       await api.delete(`/casos/${casoToDelete._id}`);
       setCasos(prev => prev.filter(c => c._id !== casoToDelete._id));
       setDeleteDialogOpen(false);
@@ -295,13 +299,13 @@ function Casos() {
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
       case 'em andamento':
-        return '#A68866';
+        return '#C85A5A';  // Vermelho coral
       case 'finalizado':
-        return '#4B6382';
+        return '#5A7A6B';  // Verde teal
       case 'arquivado':
-        return '#A4B5C4';
+        return '#F0E1CE';  // Bege claro
       default:
-        return '#071739';
+        return '#C85A5A';  // Vermelho coral como padrão
     }
   };
 
@@ -325,7 +329,7 @@ function Casos() {
     <Layout pageTitle="Gestão de Casos">
       <Box sx={{ 
         minHeight: '100vh',
-        background: '#F5F5F5',
+        background: colors.background,
         overflowX: 'hidden',
         width: '100%' 
       }}>
@@ -341,19 +345,19 @@ function Casos() {
           </Alert>
         )}
 
-        {/* ✅ CORRIGIDO: Header Actions com busca e filtros habilitados */}
-        <Grid container spacing={3} sx={{ mb: 3 }}>
-          <Grid item xs={12} md={6} lg={3}>
+        {/* Header Actions */}
+        <Grid container spacing={2} sx={{ mb: 3, alignItems: 'center' }}>
+          <Grid item xs={12} md={6}>
             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
               <Button
                 variant="contained"
                 startIcon={<AddIcon />}
                 onClick={handleNovoCaso}
                 sx={{
-                  bgcolor: '#E3C39D',               
-                  color: '#071739',                
+                  bgcolor: colors.steelBlue,               
+                  color: 'white',                
                   '&:hover': {
-                    bgcolor: '#4B6382',            
+                    bgcolor: colors.primary,            
                     transform: 'translateY(-1px)',
                     boxShadow: '0 4px 12px rgba(75, 99, 130, 0.3)'
                   },
@@ -372,10 +376,10 @@ function Casos() {
                 onClick={fetchCasos}
                 disabled={loading}
                 sx={{
-                  bgcolor: '#E3C39D',               
-                  color: '#071739',               
+                  bgcolor: colors.steelBlue,               
+                  color: 'white',               
                   '&:hover': {
-                    bgcolor: '#4B6382',             
+                    bgcolor: colors.primary,             
                     transform: 'translateY(-1px)',
                     boxShadow: '0 4px 12px rgba(75, 99, 130, 0.3)'
                   },
@@ -390,57 +394,57 @@ function Casos() {
             </Box>
           </Grid>
           
-          {/* ✅ HABILITADO: Campo de busca */}
-          <Grid item xs={12} md={6} lg={6}>
-            <TextField
-              fullWidth
-              placeholder="Pesquisar por título, descrição ou ID..."
-              value={searchTerm}
-              onChange={handleSearchChange}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon sx={{ color: '#4B6382' }} />
-                  </InputAdornment>
-                ),
-              }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  bgcolor: 'white',
-                  '&:hover fieldset': {
-                    borderColor: '#4B6382',
-                  },
-                  '&.Mui-focused fieldset': {
-                    borderColor: '#071739',
-                  },
-                }
-              }}
-            />
-          </Grid>
-
-          {/* ✅ HABILITADO: Filtro de status */}
-          <Grid item xs={12} md={6} lg={3}>
-            <FormControl fullWidth>
-              <Select
-                value={filterOption}
-                onChange={handleFilterChange}
-                displayEmpty
+          {/* Campo de busca e filtro - mais compactos à direita */}
+          <Grid item xs={12} md={6}>
+            <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'flex-end' }}>
+              <TextField
+                placeholder="Pesquisar casos..."
+                value={searchTerm}
+                onChange={handleSearchChange}
+                size="small"
                 sx={{
-                  bgcolor: 'white',
-                  '&:hover .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#4B6382',
-                  },
-                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#071739',
+                  width: 280,
+                  '& .MuiOutlinedInput-root': {
+                    bgcolor: 'white',
+                    '&:hover fieldset': {
+                      borderColor: colors.secondary,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: colors.primary,
+                    },
                   }
                 }}
-              >
-                <MenuItem value="todos">Todos os Status</MenuItem>
-                <MenuItem value="em andamento">Em Andamento</MenuItem>
-                <MenuItem value="finalizado">Finalizados</MenuItem>
-                <MenuItem value="arquivado">Arquivados</MenuItem>
-              </Select>
-            </FormControl>
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon sx={{ color: colors.secondary, fontSize: '1.1rem' }} />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+              
+              <FormControl size="small" sx={{ minWidth: 140 }}>
+                <Select
+                  value={filterOption}
+                  onChange={handleFilterChange}
+                  displayEmpty
+                  sx={{
+                    bgcolor: 'white',
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      borderColor: colors.secondary,
+                    },
+                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                      borderColor: colors.primary,
+                    }
+                  }}
+                >
+                  <MenuItem value="todos">Todos</MenuItem>
+                  <MenuItem value="em andamento">Em Andamento</MenuItem>
+                  <MenuItem value="finalizado">Finalizados</MenuItem>
+                  <MenuItem value="arquivado">Arquivados</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
           </Grid>
         </Grid>
 
@@ -453,8 +457,8 @@ function Casos() {
             minHeight: '60vh',
             flexDirection: 'column'
           }}>
-            <CircularProgress size={50} sx={{ color: '#071739', mb: 2 }} />
-            <Typography sx={{ color: '#4B6382', fontSize: '1.1rem' }}>
+            <CircularProgress size={50} sx={{ color: colors.primary, mb: 2 }} />
+            <Typography sx={{ color: colors.secondary, fontSize: '1.1rem' }}>
               Carregando casos...
             </Typography>
           </Box>
@@ -474,8 +478,8 @@ function Casos() {
                   <TableHead>
                     <TableRow>
                       <TableCell sx={{ 
-                        bgcolor: '#A4B5C4', 
-                        color: '#071739', 
+                        bgcolor: colors.lightSlateGray, 
+                        color: colors.primary, 
                         fontWeight: 600,
                         borderBottom: '2px solid rgba(164, 181, 196, 0.3)',
                         fontSize: '0.95rem'
@@ -483,8 +487,8 @@ function Casos() {
                         Título
                       </TableCell>
                       <TableCell sx={{ 
-                        bgcolor: '#A4B5C4',
-                        color: '#071739', 
+                        bgcolor: colors.lightSlateGray,
+                        color: colors.primary, 
                         fontWeight: 600,
                         borderBottom: '2px solid rgba(164, 181, 196, 0.3)',
                         fontSize: '0.95rem'
@@ -492,8 +496,8 @@ function Casos() {
                         Tipo
                       </TableCell>
                       <TableCell sx={{ 
-                        bgcolor: '#A4B5C4', 
-                        color: '#071739', 
+                        bgcolor: colors.lightSlateGray, 
+                        color: colors.primary, 
                         fontWeight: 600,
                         borderBottom: '2px solid rgba(164, 181, 196, 0.3)',
                         fontSize: '0.95rem'
@@ -501,8 +505,8 @@ function Casos() {
                         Data de Criação
                       </TableCell>
                       <TableCell sx={{ 
-                        bgcolor: '#A4B5C4',
-                        color: '#071739', 
+                        bgcolor: colors.lightSlateGray,
+                        color: colors.primary, 
                         fontWeight: 600,
                         borderBottom: '2px solid rgba(164, 181, 196, 0.3)',
                         fontSize: '0.95rem'
@@ -510,8 +514,8 @@ function Casos() {
                         Status
                       </TableCell>
                       <TableCell sx={{ 
-                        bgcolor: '#A4B5C4',
-                        color: '#071739', 
+                        bgcolor: colors.lightSlateGray,
+                        color: colors.primary, 
                         fontWeight: 600,
                         borderBottom: '2px solid rgba(164, 181, 196, 0.3)',
                         fontSize: '0.95rem'
@@ -519,8 +523,8 @@ function Casos() {
                         Local
                       </TableCell>
                       <TableCell sx={{ 
-                        bgcolor: '#A4B5C4',
-                        color: '#071739', 
+                        bgcolor: colors.lightSlateGray,
+                        color: colors.primary, 
                         fontWeight: 600,
                         borderBottom: '2px solid rgba(164, 181, 196, 0.3)',
                         width: 140,
@@ -534,12 +538,12 @@ function Casos() {
                     {paginatedCasos.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={6} sx={{ textAlign: 'center', py: 8 }}>
-                          <Typography variant="h6" sx={{ color: '#4B6382', mb: 1 }}>
+                          <Typography variant="h6" sx={{ color: colors.secondary, mb: 1 }}>
                             {filteredCasos.length === 0 && casos.length === 0 
                               ? 'Nenhum caso encontrado para este usuário' 
                               : 'Nenhum caso encontrado com os filtros aplicados'}
                           </Typography>
-                          <Typography variant="body2" sx={{ color: '#A68866' }}>
+                          <Typography variant="body2" sx={{ color: colors.accent }}>
                             {casos.length === 0 ? 'Crie seu primeiro caso clicando no botão "Novo"' : 'Tente ajustar os filtros de busca'}
                           </Typography>
                         </TableCell>
@@ -561,7 +565,7 @@ function Casos() {
                           }}
                         >
                           <TableCell sx={{ 
-                            color: '#071739', 
+                            color: colors.primary, 
                             fontWeight: 500,
                             fontSize: '0.9rem',
                             py: 2
@@ -569,14 +573,14 @@ function Casos() {
                             {caso.titulo || 'Título não informado'}
                           </TableCell>
                           <TableCell sx={{ 
-                            color: '#4B6382',
+                            color: colors.secondary,
                             fontSize: '0.9rem',
                             py: 2
                           }}>
                             {caso.tipo || '-'}
                           </TableCell>
                           <TableCell sx={{ 
-                            color: '#4B6382',
+                            color: colors.secondary,
                             fontSize: '0.9rem',
                             py: 2
                           }}>
@@ -588,7 +592,7 @@ function Casos() {
                               size="small"
                               sx={{
                                 bgcolor: getStatusColor(caso.status),
-                                color: 'white',
+                                color: caso.status?.toLowerCase() === 'arquivado' ? '#333' : 'white',
                                 fontWeight: 500,
                                 fontSize: '0.75rem',
                                 minWidth: 90
@@ -596,7 +600,7 @@ function Casos() {
                             />
                           </TableCell>
                           <TableCell sx={{ 
-                            color: '#4B6382',
+                            color: colors.secondary,
                             fontSize: '0.9rem',
                             py: 2,
                             maxWidth: 200,
@@ -616,7 +620,7 @@ function Casos() {
                                     handleViewCaso(caso);
                                   }}
                                   sx={{ 
-                                    color: '#4B6382',
+                                    color: colors.secondary,
                                     '&:hover': { bgcolor: 'rgba(164, 181, 196, 0.15)' }
                                   }}
                                 >
@@ -662,7 +666,7 @@ function Casos() {
                 boxShadow: '0 2px 12px rgba(7, 23, 57, 0.04)'
               }}>
                 <Box>
-                  <Typography variant="body2" sx={{ color: '#4B6382', fontSize: '0.95rem' }}>
+                  <Typography variant="body2" sx={{ color: colors.secondary, fontSize: '0.95rem' }}>
                     Mostrando <strong>{startIndex + 1}</strong> a <strong>{Math.min(endIndex, filteredCasos.length)}</strong> de <strong>{filteredCasos.length}</strong> casos
                   </Typography>
                 </Box>
@@ -674,20 +678,20 @@ function Casos() {
                   color="primary"
                   showFirstButton
                   showLastButton
-                  size="large"
+                  size="medium"
                   sx={{
                     '& .MuiPaginationItem-root': {
-                      color: '#A68866',
-                      fontSize: '0.9rem',
+                      color: colors.steelBlue,
+                      fontSize: '0.75rem',
                       '&.Mui-selected': {
-                        bgcolor: '#A68866',
+                        bgcolor: colors.steelBlue,
                         color: 'white',
                         '&:hover': {
-                          bgcolor: '#4B6382',
+                          bgcolor: colors.primary,
                         }
                       },
                       '&:hover': {
-                        bgcolor: 'rgba(164, 181, 196, 0.15)',
+                        bgcolor: 'rgba(75, 99, 130, 0.15)',
                       }
                     }
                   }}
@@ -713,7 +717,7 @@ function Casos() {
           }}
         >
           <DialogTitle sx={{ 
-            bgcolor: '#071739', 
+            bgcolor: colors.primary, 
             color: 'white', 
             display: 'flex', 
             justifyContent: 'space-between', 
@@ -735,7 +739,7 @@ function Casos() {
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
               {/* Título */}
               <Box>
-                <FormLabel sx={{ color: '#071739', fontWeight: 600, mb: 1, display: 'block' }}>
+                <FormLabel sx={{ color: colors.primary, fontWeight: 600, mb: 1, display: 'block' }}>
                   Título do Caso *
                 </FormLabel>
                 <TextField
@@ -745,8 +749,8 @@ function Casos() {
                   onChange={handleFormChange('titulo')}
                   sx={{
                     '& .MuiOutlinedInput-root': {
-                      '&:hover fieldset': { borderColor: '#4B6382' },
-                      '&.Mui-focused fieldset': { borderColor: '#071739' }
+                      '&:hover fieldset': { borderColor: colors.secondary },
+                      '&.Mui-focused fieldset': { borderColor: colors.primary }
                     }
                   }}
                 />
@@ -754,7 +758,7 @@ function Casos() {
 
               {/* Tipo */}
               <Box>
-                <FormLabel sx={{ color: '#071739', fontWeight: 600, mb: 1, display: 'block' }}>
+                <FormLabel sx={{ color: colors.primary, fontWeight: 600, mb: 1, display: 'block' }}>
                   Tipo de Caso *
                 </FormLabel>
                 <FormControl fullWidth>
@@ -763,8 +767,8 @@ function Casos() {
                     onChange={handleFormChange('tipo')}
                     displayEmpty
                     sx={{
-                      '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#4B6382' },
-                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#071739' }
+                      '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: colors.secondary },
+                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: colors.primary }
                     }}
                   >
                     <MenuItem value="">Selecione o tipo</MenuItem>
@@ -779,7 +783,7 @@ function Casos() {
 
               {/* Status */}
               <Box>
-                <FormLabel sx={{ color: '#071739', fontWeight: 600, mb: 1, display: 'block' }}>
+                <FormLabel sx={{ color: colors.primary, fontWeight: 600, mb: 1, display: 'block' }}>
                   Status
                 </FormLabel>
                 <FormControl fullWidth>
@@ -787,8 +791,8 @@ function Casos() {
                     value={formData.status}
                     onChange={handleFormChange('status')}
                     sx={{
-                      '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#4B6382' },
-                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#071739' }
+                      '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: colors.secondary },
+                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: colors.primary }
                     }}
                   >
                     {statusOptions.map((status) => (
@@ -802,7 +806,7 @@ function Casos() {
 
               {/* Data */}
               <Box>
-                <FormLabel sx={{ color: '#071739', fontWeight: 600, mb: 1, display: 'block' }}>
+                <FormLabel sx={{ color: colors.primary, fontWeight: 600, mb: 1, display: 'block' }}>
                   Data do Caso
                 </FormLabel>
                 <TextField
@@ -812,8 +816,8 @@ function Casos() {
                   onChange={handleFormChange('data')}
                   sx={{
                     '& .MuiOutlinedInput-root': {
-                      '&:hover fieldset': { borderColor: '#4B6382' },
-                      '&.Mui-focused fieldset': { borderColor: '#071739' }
+                      '&:hover fieldset': { borderColor: colors.secondary },
+                      '&.Mui-focused fieldset': { borderColor: colors.primary }
                     }
                   }}
                 />
@@ -821,7 +825,7 @@ function Casos() {
 
               {/* Local */}
               <Box>
-                <FormLabel sx={{ color: '#071739', fontWeight: 600, mb: 1, display: 'block' }}>
+                <FormLabel sx={{ color: colors.primary, fontWeight: 600, mb: 1, display: 'block' }}>
                   Local do Caso *
                 </FormLabel>
                 <TextField
@@ -831,8 +835,8 @@ function Casos() {
                   onChange={handleFormChange('localDoCaso')}
                   sx={{
                     '& .MuiOutlinedInput-root': {
-                      '&:hover fieldset': { borderColor: '#4B6382' },
-                      '&.Mui-focused fieldset': { borderColor: '#071739' }
+                      '&:hover fieldset': { borderColor: colors.secondary },
+                      '&.Mui-focused fieldset': { borderColor: colors.primary }
                     }
                   }}
                 />
@@ -840,7 +844,7 @@ function Casos() {
 
               {/* Descrição */}
               <Box>
-                <FormLabel sx={{ color: '#071739', fontWeight: 600, mb: 1, display: 'block' }}>
+                <FormLabel sx={{ color: colors.primary, fontWeight: 600, mb: 1, display: 'block' }}>
                   Descrição do Caso *
                 </FormLabel>
                 <TextField
@@ -852,8 +856,8 @@ function Casos() {
                   onChange={handleFormChange('descricao')}
                   sx={{
                     '& .MuiOutlinedInput-root': {
-                      '&:hover fieldset': { borderColor: '#4B6382' },
-                      '&.Mui-focused fieldset': { borderColor: '#071739' }
+                      '&:hover fieldset': { borderColor: colors.secondary },
+                      '&.Mui-focused fieldset': { borderColor: colors.primary }
                     }
                   }}
                 />
@@ -864,7 +868,7 @@ function Casos() {
           <DialogActions sx={{ p: 3, pt: 0 }}>
             <Button 
               onClick={handleCloseModal}
-              sx={{ color: '#4B6382', minWidth: 100 }}
+              sx={{ color: colors.secondary, minWidth: 100 }}
             >
               Cancelar
             </Button>
@@ -873,9 +877,9 @@ function Casos() {
               variant="contained"
               disabled={modalLoading}
               sx={{
-                bgcolor: '#071739',
+                bgcolor: colors.steelBlue,
                 minWidth: 120,
-                '&:hover': { bgcolor: '#4B6382' },
+                '&:hover': { bgcolor: colors.primary },
                 '&:disabled': { bgcolor: '#ccc' }
               }}
             >
@@ -891,17 +895,17 @@ function Casos() {
           aria-labelledby="delete-dialog-title"
           aria-describedby="delete-dialog-description"
         >
-          <DialogTitle id="delete-dialog-title" sx={{ color: '#071739' }}>
+          <DialogTitle id="delete-dialog-title" sx={{ color: colors.primary }}>
             Confirmar Exclusão
           </DialogTitle>
           <DialogContent>
-            <DialogContentText id="delete-dialog-description" sx={{ color: '#4B6382' }}>
+            <DialogContentText id="delete-dialog-description" sx={{ color: colors.secondary }}>
               Tem certeza que deseja excluir o caso "{casoToDelete?.titulo}"? 
               Esta ação não pode ser desfeita.
             </DialogContentText>
           </DialogContent>
           <DialogActions>
-            <Button onClick={handleCancelDelete} sx={{ color: '#4B6382' }}>
+            <Button onClick={handleCancelDelete} sx={{ color: colors.secondary }}>
               Cancelar
             </Button>
             <Button 

@@ -141,7 +141,7 @@ function Header({ onMobileMenuOpen, pageTitle = "Dashboard" }) {
               badgeContent={4} 
               sx={{
                 '& .MuiBadge-badge': {
-                  bgcolor: '#A68658',
+                  bgcolor: '#E3C39D',
                   color: 'white'
                 }
               }}
