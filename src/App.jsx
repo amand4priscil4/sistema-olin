@@ -5,6 +5,10 @@ import { CssBaseline } from '@mui/material';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Casos from './pages/Casos'; 
+import BancodeCasos from './pages/BancodeCasos';
+import Historico from './pages/Historico';
+import Usuarios from './pages/Usuarios';
+import Ajustes from './pages/Ajustes'; // ✅ Import da página de ajustes real
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import VerCaso from './pages/VerCaso';
@@ -17,50 +21,17 @@ import { createTheme } from '@mui/material/styles';
 const defaultTheme = createTheme({
   palette: {
     primary: {
-      main: '#071739',
-      light: '#4B6382',
-      dark: '#051024',
+      main: '#2F2F2F',     // Cinza escuro (era azul)
+      light: '#6B7280',    // Cinza médio  
+      dark: '#1F2937',     // Cinza mais escuro
     },
     secondary: {
-      main: '#A68658',
-      light: '#E3C380',
-      dark: '#8B6F47',
+      main: '#6B7280',     // Cinza médio 
+      light: '#9CA3AF',    // Cinza claro 
+      dark: '#374151',     // Cinza carvão
     },
   },
 });
-
-// Páginas placeholder com proteção adequada
-const BancoCasos = () => (
-  <ProtectedRoute allowedRoles={['admin', 'perito', 'assistente']}>
-    <Layout pageTitle="Banco de Casos">
-      <div>Página do Banco de Casos em desenvolvimento...</div>
-    </Layout>
-  </ProtectedRoute>
-);
-
-const Historico = () => (
-  <ProtectedRoute allowedRoles={['admin']}>
-    <Layout pageTitle="Histórico do Sistema">
-      <div>Página de Histórico em desenvolvimento...</div>
-    </Layout>
-  </ProtectedRoute>
-);
-
-const Usuarios = () => (
-  <ProtectedRoute allowedRoles={['admin']}>
-    <Layout pageTitle="Gestão de Usuários">
-      <div>Página de Usuários em desenvolvimento...</div>
-    </Layout>
-  </ProtectedRoute>
-);
-
-const Ajustes = () => (
-  <ProtectedRoute allowedRoles={['admin', 'perito', 'assistente']}>
-    <Layout pageTitle="Configurações">
-      <div>Página de Ajustes em desenvolvimento...</div>
-    </Layout>
-  </ProtectedRoute>
-);
 
 function App() {
   return (
@@ -109,10 +80,42 @@ function App() {
 
           <Route path="/laudos-odontologicos/:laudoId" element={<VisualizarLaudoOdontologico />} />
           
-          <Route path="/banco-casos" element={<BancoCasos />} />
-          <Route path="/historico" element={<Historico />} />
-          <Route path="/usuarios" element={<Usuarios />} />
-          <Route path="/ajustes" element={<Ajustes />} />
+          <Route 
+            path="/banco-casos" 
+            element={
+              <ProtectedRoute allowedRoles={['admin', 'perito', 'assistente']}>
+                <BancodeCasos />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/historico" 
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <Historico />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/usuarios" 
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <Usuarios />
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* ✅ Rota atualizada para usar o componente Ajustes real */}
+          <Route 
+            path="/ajustes" 
+            element={
+              <ProtectedRoute allowedRoles={['admin', 'perito', 'assistente']}>
+                <Ajustes />
+              </ProtectedRoute>
+            } 
+          />
         </Routes>
       </BrowserRouter>
     </ThemeProvider>

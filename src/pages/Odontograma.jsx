@@ -516,7 +516,7 @@ Os dados atuais serão perdidos e um novo odontograma será criado.`
                 onClick={() => setShowLaudoModal(true)}
                 disabled={!odontograma}
                 sx={{
-                  bgcolor: colors.accent,
+                  bgcolor: colors.primary,
                   color: 'white',
                   '&:hover': {
                     bgcolor: colors.primary,

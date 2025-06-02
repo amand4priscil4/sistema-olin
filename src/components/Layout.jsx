@@ -48,7 +48,7 @@ function Layout({ children, pageTitle = "Dashboard" }) {
          flex: 1, 
          overflow: 'auto',
          bgcolor: '#F8F9FA',
-         p: { xs: 2, md: 3 },  // ✅ RECOLOCAR o padding que removemos
+         p: { xs: 2, md: 1 },  // ✅ RECOLOCAR o padding que removemos
          display: 'flex',
          flexDirection: 'column'
         }}>

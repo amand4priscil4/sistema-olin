@@ -47,8 +47,40 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import Layout from '../components/Layout';
-import { colors } from '../styles/colors';
 import api, { uploadApi } from '../service/api';
+
+// Nova paleta de cores neutras
+const colors = {
+  // Tons principais
+  darkSlate: '#2F2F2F',         
+  mediumGray: '#6B7280',        
+  lightGray: '#9CA3AF',         
+  paleGray: '#E5E7EB',          
+  
+  // Tons neutros para cards
+  charcoal: '#374151',          
+  steel: '#6B7280',             
+  silver: '#9CA3AF',            
+  pearl: '#F3F4F6',             
+  
+  // Aliases para facilitar uso
+  primary: '#2F2F2F',           
+  secondary: '#6B7280',         
+  accent: '#DC3545',            
+  background: '#F9FAFB',        
+  surface: '#FFFFFF',           
+  
+  // Estados e feedback (mantém os existentes)
+  success: '#4CAF50',
+  error: '#F44336', 
+  warning: '#FF9800',
+  info: '#DC3545',              
+  
+  // Texto
+  textPrimary: '#2F2F2F',
+  textSecondary: '#6B7280',
+  textDisabled: '#9CA3AF'
+};
 
 // Fix para ícones do Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -580,6 +612,7 @@ const VerCaso = () => {
     return false;
   };
 
+  // MANTÉM AS CORES ORIGINAIS DOS STATUS
   const getStatusIcon = (status) => {
     switch (status) {
       case 'em andamento':
@@ -648,7 +681,7 @@ const VerCaso = () => {
           textAlign: 'center',
           p: 3
         }}>
-          <AlertCircleIcon sx={{ fontSize: 64, color: '#f44336', mb: 2 }} />
+          <AlertCircleIcon sx={{ fontSize: 64, color: colors.error, mb: 2 }} />
           <Typography variant="h5" gutterBottom sx={{ color: colors.primary }}>
             Caso não encontrado
           </Typography>
@@ -657,7 +690,7 @@ const VerCaso = () => {
             onClick={handleVoltar}
             sx={{
               mt: 2,
-              bgcolor: colors.steelBlue,
+              bgcolor: colors.charcoal,
               '&:hover': { bgcolor: colors.primary }
             }}
           >
@@ -687,8 +720,8 @@ const VerCaso = () => {
         {/* Header */}
         <Paper sx={{ 
           p: 3, 
-          mb: 3,
-          border: `1px solid ${colors.secondary}20`,
+          mb: 1,
+          border: `1px solid ${colors.lightGray}30`,
           boxShadow: `0 4px 24px ${colors.primary}10`,
           borderRadius: 3
         }}>
@@ -730,7 +763,7 @@ const VerCaso = () => {
               startIcon={<ArrowLeftIcon />}
               onClick={handleVoltar}
               sx={{
-                bgcolor: colors.steelBlue,
+                bgcolor: colors.charcoal,
                 color: 'white',
                 '&:hover': {
                   bgcolor: colors.primary,
@@ -749,8 +782,8 @@ const VerCaso = () => {
 
         {/* Tabs */}
         <Paper sx={{ 
-          mb: 3,
-          border: `1px solid ${colors.secondary}20`,
+          mb: 1,
+          border: `1px solid ${colors.lightGray}30`,
           boxShadow: `0 2px 12px ${colors.primary}08`,
           borderRadius: 3,
           overflow: 'hidden'
@@ -787,7 +820,7 @@ const VerCaso = () => {
         {/* Tab Content */}
         <Paper sx={{ 
           p: 4,
-          border: `1px solid ${colors.secondary}20`,
+          border: `1px solid ${colors.lightGray}30`,
           boxShadow: `0 4px 24px ${colors.primary}10`,
           borderRadius: 3,
           minHeight: '60vh'
@@ -806,7 +839,7 @@ const VerCaso = () => {
                       startIcon={editMode ? <SaveIcon /> : <EditIcon />}
                       onClick={() => editMode ? handleEditCaso() : setEditMode(true)}
                       sx={{
-                        bgcolor: colors.steelBlue,
+                        bgcolor: colors.charcoal,
                         '&:hover': { bgcolor: colors.primary }
                       }}
                     >
@@ -837,11 +870,6 @@ const VerCaso = () => {
               </Box>
 
               <Grid container spacing={3}>
-                <Grid item xs={12}>
-                  <Typography variant="h6" sx={{ color: colors.primary, fontWeight: 600, mb: 2 }}>
-                  </Typography>
-                </Grid>
-
                 <Grid item xs={12} md={6}>
                   <Typography variant="subtitle2" gutterBottom sx={{ color: colors.primary, fontWeight: 600 }}>
                     Título
@@ -973,13 +1001,6 @@ const VerCaso = () => {
                       />
                     </Box>
                   )}
-                </Grid>
-
-                {/* Título: Localização - Nova linha completa */}
-                <Grid item xs={12} sx={{ mt: 4 }}>
-                  <Typography variant="h6" sx={{ color: colors.primary, fontWeight: 600, mb: 2 }}>
-                    
-                  </Typography>
                 </Grid>
 
                 {/* Campos: Localização */}
@@ -1180,7 +1201,7 @@ const VerCaso = () => {
                       sx={{ 
                         height: 400, 
                         overflow: 'hidden',
-                        border: `1px solid ${colors.secondary}20`,
+                        border: `1px solid ${colors.lightGray}30`,
                         borderRadius: 2,
                         '& .leaflet-container': {
                           height: '100%',
@@ -1249,16 +1270,16 @@ const VerCaso = () => {
                       sx={{ 
                         p: 3, 
                         textAlign: 'center',
-                        bgcolor: `${colors.lightSlateGray}10`,
+                        bgcolor: `${colors.lightGray}10`,
                         borderRadius: 2,
-                        border: `1px dashed ${colors.lightSlateGray}`
+                        border: `1px dashed ${colors.lightGray}`
                       }}
                     >
-                      <MapPinIcon sx={{ fontSize: 48, color: colors.lightSlateGray, mb: 1 }} />
+                      <MapPinIcon sx={{ fontSize: 48, color: colors.lightGray, mb: 1 }} />
                       <Typography variant="body1" sx={{ color: colors.secondary }}>
                         Nenhuma coordenada de localização cadastrada
                       </Typography>
-                      <Typography variant="body2" sx={{ color: colors.lightSlateGray }}>
+                      <Typography variant="body2" sx={{ color: colors.lightGray }}>
                         {editMode ? 'Informe o endereço e clique no botão 🔍 para buscar coordenadas automaticamente' : 'Entre no modo de edição para adicionar coordenadas'}
                       </Typography>
                     </Box>
@@ -1268,7 +1289,7 @@ const VerCaso = () => {
             </Box>
           )}
 
-          {/* Evidências Tab - SEM BOTÃO DE CRIAR LAUDO */}
+          {/* Evidências Tab */}
           {activeTab === 1 && (
             <Box>
               <Box display="flex" justifyContent="space-between" alignItems="center" mb={3} flexWrap="wrap" gap={2}>
@@ -1297,7 +1318,7 @@ const VerCaso = () => {
 
               {evidencias.length === 0 ? (
                 <Box textAlign="center" py={8}>
-                  <ArchiveIcon sx={{ fontSize: 64, color: colors.lightSlateGray, mb: 2 }} />
+                  <ArchiveIcon sx={{ fontSize: 64, color: colors.lightGray, mb: 2 }} />
                   <Typography variant="h6" sx={{ color: colors.primary, mb: 1 }}>
                     Nenhuma evidência cadastrada
                   </Typography>
@@ -1310,7 +1331,7 @@ const VerCaso = () => {
                   {evidencias.map((evidencia) => (
                     <Grid item xs={12} key={evidencia._id}>
                       <Card sx={{
-                        border: `1px solid ${colors.lightSlateGray}40`,
+                        border: `1px solid ${colors.lightGray}40`,
                         boxShadow: `0 2px 8px ${colors.primary}05`,
                         borderRadius: 2,
                         '&:hover': {
@@ -1412,7 +1433,7 @@ const VerCaso = () => {
             </Box>
           )}
 
-          {/* Laudos Tab - COM MÚLTIPLAS OPÇÕES DE CRIAÇÃO */}
+          {/* Laudos Tab */}
           {activeTab === 2 && (
             <Box>
               <Box display="flex" justifyContent="space-between" alignItems="center" mb={3} flexWrap="wrap" gap={2}>
@@ -1457,7 +1478,7 @@ const VerCaso = () => {
 
               {laudos.length === 0 ? (
                 <Box textAlign="center" py={8}>
-                  <ClipboardListIcon sx={{ fontSize: 64, color: colors.lightSlateGray, mb: 2 }} />
+                  <ClipboardListIcon sx={{ fontSize: 64, color: colors.lightGray, mb: 2 }} />
                   <Typography variant="h6" sx={{ color: colors.primary, mb: 1 }}>
                     Nenhum laudo cadastrado
                   </Typography>
@@ -1475,7 +1496,7 @@ const VerCaso = () => {
                   {laudos.map((laudo) => (
                     <Grid item xs={12} key={laudo._id}>
                       <Card sx={{
-                        border: `1px solid ${colors.lightSlateGray}40`,
+                        border: `1px solid ${colors.lightGray}40`,
                         boxShadow: `0 2px 8px ${colors.primary}05`,
                         borderRadius: 2,
                         '&:hover': {
@@ -1533,10 +1554,10 @@ const VerCaso = () => {
                               mb: 2,
                               whiteSpace: 'pre-wrap',
                               lineHeight: 1.6,
-                              bgcolor: `${colors.lightSlateGray}05`,
+                              bgcolor: `${colors.lightGray}05`,
                               p: 2,
                               borderRadius: 1,
-                              border: `1px solid ${colors.lightSlateGray}20`
+                              border: `1px solid ${colors.lightGray}20`
                             }}
                           >
                             {laudo.texto}
@@ -1545,12 +1566,12 @@ const VerCaso = () => {
                           <Divider sx={{ my: 2 }} />
                           <Grid container spacing={2}>
                             <Grid item xs={12} sm={6}>
-                              <Typography variant="body2" sx={{ color: colors.lightSlateGray }}>
+                              <Typography variant="body2" sx={{ color: colors.textDisabled }}>
                                 <strong>Autor:</strong> {laudo.autor?.name || 'Não informado'}
                               </Typography>
                             </Grid>
                             <Grid item xs={12} sm={6}>
-                              <Typography variant="body2" sx={{ color: colors.lightSlateGray }}>
+                              <Typography variant="body2" sx={{ color: colors.textDisabled }}>
                                 <strong>Criado em:</strong> {formatDate(laudo.criadoEm)}
                               </Typography>
                             </Grid>
@@ -1593,7 +1614,7 @@ const VerCaso = () => {
 
               {vitimas.length === 0 ? (
                 <Box textAlign="center" py={8}>
-                  <UsersIcon sx={{ fontSize: 64, color: colors.lightSlateGray, mb: 2 }} />
+                  <UsersIcon sx={{ fontSize: 64, color: colors.lightGray, mb: 2 }} />
                   <Typography variant="h6" sx={{ color: colors.primary, mb: 1 }}>
                     Nenhuma vítima cadastrada
                   </Typography>
@@ -1606,7 +1627,7 @@ const VerCaso = () => {
                   {vitimas.map((vitima) => (
                     <Grid item xs={12} key={vitima._id}>
                       <Card sx={{
-                        border: `1px solid ${colors.lightSlateGray}40`,
+                        border: `1px solid ${colors.lightGray}40`,
                         boxShadow: `0 2px 8px ${colors.primary}05`,
                         borderRadius: 2,
                         '&:hover': {
@@ -1649,28 +1670,28 @@ const VerCaso = () => {
                               {/* Botão Odontograma */}
                               {canCreateVictim() && (
                                 <Button
-                      variant="contained"
-                       size="small"
-                       startIcon={<EyeIcon />}  // ← Mudança aqui
-                       onClick={() => navigate(`/vitimas/${vitima._id}/odontograma`)}
-                       sx={{
-                            bgcolor: '#2196F3',
-                            color: 'white',
-                            fontSize: '0.75rem',
-                            py: 0.8,
-                            '&:hover': { 
-                            bgcolor: '#1976D2',
-                            transform: 'translateY(-1px)',
-                            boxShadow: '0 4px 12px rgba(33, 150, 243, 0.3)'
-                        },
-                            transition: 'all 0.3s ease'
-                        }}
-                           >
-                            Odontograma
-                               </Button>
-                        )}
+                                  variant="contained"
+                                  size="small"
+                                  startIcon={<EyeIcon />}
+                                  onClick={() => navigate(`/vitimas/${vitima._id}/odontograma`)}
+                                  sx={{
+                                    bgcolor: '#2196F3',
+                                    color: 'white',
+                                    fontSize: '0.75rem',
+                                    py: 0.8,
+                                    '&:hover': { 
+                                      bgcolor: '#1976D2',
+                                      transform: 'translateY(-1px)',
+                                      boxShadow: '0 4px 12px rgba(33, 150, 243, 0.3)'
+                                    },
+                                    transition: 'all 0.3s ease'
+                                  }}
+                                >
+                                  Odontograma
+                                </Button>
+                              )}
                               
-                              {/* Indicadores de status */}
+                              {/* Indicadores de status - MANTÉM CORES ORIGINAIS */}
                               <Box display="flex" flexDirection="column" gap={0.5}>
                                 <Chip 
                                   label={vitima.genero} 
@@ -1733,7 +1754,7 @@ const VerCaso = () => {
 
               {relatorio ? (
                 <Card sx={{
-                  border: `1px solid ${colors.lightSlateGray}40`,
+                  border: `1px solid ${colors.lightGray}40`,
                   boxShadow: `0 2px 8px ${colors.primary}05`,
                   borderRadius: 2
                 }}>
@@ -1756,12 +1777,12 @@ const VerCaso = () => {
                     <Divider sx={{ my: 2 }} />
                     <Grid container spacing={2} sx={{ mb: 2 }}>
                       <Grid item xs={12} sm={6}>
-                        <Typography variant="body2" sx={{ color: colors.lightSlateGray }}>
+                        <Typography variant="body2" sx={{ color: colors.textDisabled }}>
                           <strong>Criado em:</strong> {formatDate(relatorio.criadoEm)}
                         </Typography>
                       </Grid>
                       <Grid item xs={12} sm={6}>
-                        <Typography variant="body2" sx={{ color: colors.lightSlateGray }}>
+                        <Typography variant="body2" sx={{ color: colors.textDisabled }}>
                           <strong>Criado por:</strong> {relatorio.criadoPor?.name || 'Não informado'}
                         </Typography>
                       </Grid>
@@ -1771,7 +1792,7 @@ const VerCaso = () => {
                       startIcon={<DownloadIcon />}
                       onClick={handleDownloadPDF}
                       sx={{
-                        bgcolor: colors.steelBlue,
+                        bgcolor: colors.charcoal,
                         '&:hover': { bgcolor: colors.primary }
                       }}
                     >
@@ -1781,7 +1802,7 @@ const VerCaso = () => {
                 </Card>
               ) : (
                 <Box textAlign="center" py={8}>
-                  <FileTextIcon sx={{ fontSize: 64, color: colors.lightSlateGray, mb: 2 }} />
+                  <FileTextIcon sx={{ fontSize: 64, color: colors.lightGray, mb: 2 }} />
                   <Typography variant="h6" sx={{ color: colors.primary, mb: 1 }}>
                     {caso.status === 'finalizado' 
                       ? 'Este caso já foi finalizado' 
@@ -1800,6 +1821,7 @@ const VerCaso = () => {
           )}
         </Paper>
 
+        {/* Modais mantendo estilo com nova paleta */}
         {/* Modal Nova Evidência */}
         <Dialog 
           open={showEvidenciaModal} 
@@ -1930,11 +1952,11 @@ const VerCaso = () => {
                   />
                 </Button>
                 {novaEvidencia.arquivo && (
-                  <Box sx={{ mt: 1, p: 2, bgcolor: `${colors.lightSlateGray}10`, borderRadius: 1 }}>
+                  <Box sx={{ mt: 1, p: 2, bgcolor: `${colors.lightGray}10`, borderRadius: 1 }}>
                     <Typography variant="body2" sx={{ color: colors.secondary }}>
                       <strong>Arquivo:</strong> {novaEvidencia.arquivo.name}
                     </Typography>
-                    <Typography variant="body2" sx={{ color: colors.lightSlateGray }}>
+                    <Typography variant="body2" sx={{ color: colors.textDisabled }}>
                       <strong>Tamanho:</strong> {(novaEvidencia.arquivo.size / 1024 / 1024).toFixed(2)} MB
                     </Typography>
                   </Box>
@@ -1957,7 +1979,7 @@ const VerCaso = () => {
               variant="contained"
               disabled={!novaEvidencia.titulo || !novaEvidencia.descricao || !novaEvidencia.localColeta || !novaEvidencia.dataColeta || !novaEvidencia.arquivo}
               sx={{
-                bgcolor: colors.steelBlue,
+                bgcolor: colors.charcoal,
                 '&:hover': { bgcolor: colors.primary }
               }}
             >
@@ -2134,7 +2156,7 @@ const VerCaso = () => {
               variant="contained"
               disabled={!novaVitima.nic || !novaVitima.nome || !novaVitima.idade || !novaVitima.documento.numero}
               sx={{
-                bgcolor: colors.steelBlue,
+                bgcolor: colors.charcoal,
                 '&:hover': { bgcolor: colors.primary }
               }}
             >
@@ -2224,6 +2246,8 @@ const VerCaso = () => {
             </Button>
           </DialogActions>
         </Dialog>
+
+        {/* Modal Laudo */}
         <Dialog 
           open={showLaudoModal} 
           onClose={() => setShowLaudoModal(false)} 
@@ -2250,7 +2274,7 @@ const VerCaso = () => {
                   <Typography variant="subtitle2" gutterBottom sx={{ color: colors.primary, fontWeight: 600 }}>
                     Evidências a serem analisadas *
                   </Typography>
-                  <Box sx={{ maxHeight: 200, overflow: 'auto', border: `1px solid ${colors.lightSlateGray}40`, borderRadius: 1, p: 1 }}>
+                  <Box sx={{ maxHeight: 200, overflow: 'auto', border: `1px solid ${colors.lightGray}40`, borderRadius: 1, p: 1 }}>
                     {evidencias.map((evidencia) => (
                       <Box
                         key={evidencia._id}
@@ -2258,7 +2282,7 @@ const VerCaso = () => {
                           p: 1,
                           mb: 1,
                           borderRadius: 1,
-                          border: `1px solid ${colors.lightSlateGray}20`,
+                          border: `1px solid ${colors.lightGray}20`,
                           cursor: 'pointer',
                           bgcolor: novoLaudo.evidenciasSelecionadas.includes(evidencia._id) ? `${colors.primary}10` : 'transparent',
                           '&:hover': {
@@ -2316,7 +2340,7 @@ const VerCaso = () => {
                 }}
               />
               
-              <Typography variant="caption" sx={{ color: colors.lightSlateGray, mt: 1, display: 'block' }}>
+              <Typography variant="caption" sx={{ color: colors.textDisabled, mt: 1, display: 'block' }}>
                 Mínimo 50 caracteres. Atual: {novoLaudo.texto.length} caracteres
               </Typography>
             </Box>
@@ -2340,7 +2364,7 @@ const VerCaso = () => {
                 (!evidenciaParaLaudo && novoLaudo.evidenciasSelecionadas.length === 0)
               }
               sx={{
-                bgcolor: colors.steelBlue,
+                bgcolor: colors.charcoal,
                 '&:hover': { bgcolor: colors.primary }
               }}
             >
