@@ -8,6 +8,8 @@ import Casos from './pages/Casos';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import VerCaso from './pages/VerCaso';
+import Odontograma from './pages/Odontograma';
+import VisualizarLaudoOdontologico from './pages/VisualizarLaudoOdontologico';
 
 // Tema inline como fallback
 import { createTheme } from '@mui/material/styles';
@@ -86,7 +88,6 @@ function App() {
             } 
           />
           
-          {/* ✅ CORRIGIDO: Adicionada proteção na rota VerCaso */}
           <Route 
             path="/casos/ver/:id" 
             element={
@@ -95,6 +96,18 @@ function App() {
               </ProtectedRoute>
             } 
           />
+
+          {/* Rota do Odontograma */}
+          <Route 
+            path="/vitimas/:vitimaId/odontograma" 
+            element={
+              <ProtectedRoute allowedRoles={['admin', 'perito']}>
+                <Odontograma />
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route path="/laudos-odontologicos/:laudoId" element={<VisualizarLaudoOdontologico />} />
           
           <Route path="/banco-casos" element={<BancoCasos />} />
           <Route path="/historico" element={<Historico />} />

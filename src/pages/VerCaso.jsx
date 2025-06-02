@@ -22,8 +22,7 @@ import {
   CircularProgress,
   Card,
   CardContent,
-  Divider,
-  FormLabel
+  Divider
 } from '@mui/material';
 import {
   Visibility as EyeIcon,
@@ -49,7 +48,7 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import Layout from '../components/Layout';
 import { colors } from '../styles/colors';
-import api from '../service/api';
+import api, { uploadApi } from '../service/api';
 
 // Fix para ícones do Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -78,6 +77,7 @@ const VerCaso = () => {
   const [showEvidenciaModal, setShowEvidenciaModal] = useState(false);
   const [showVitimaModal, setShowVitimaModal] = useState(false);
   const [showRelatorioModal, setShowRelatorioModal] = useState(false);
+  const [showLaudoModal, setShowLaudoModal] = useState(false);
 
   // Estados para formulários
   const [novaEvidencia, setNovaEvidencia] = useState({
@@ -110,6 +110,14 @@ const VerCaso = () => {
     texto: ''
   });
 
+  const [novoLaudo, setNovoLaudo] = useState({
+    evidenciasSelecionadas: [],
+    texto: ''
+  });
+
+  // Estado para evidência selecionada para laudo
+  const [evidenciaParaLaudo, setEvidenciaParaLaudo] = useState(null);
+
   const handleVoltar = () => {
     navigate('/casos');
   };
@@ -137,6 +145,80 @@ const VerCaso = () => {
     }
   }, [casoId]);
 
+  // Função para resetar formulário de evidência
+  const resetFormularioEvidencia = () => {
+    setNovaEvidencia({
+      titulo: '',
+      descricao: '',
+      localColeta: '',
+      dataColeta: '',
+      arquivo: null
+    });
+  };
+
+  // Função para resetar formulário de laudo
+  const resetFormularioLaudo = () => {
+    setNovoLaudo({
+      evidenciasSelecionadas: [],
+      texto: ''
+    });
+    setEvidenciaParaLaudo(null);
+  };
+
+  // Função para validar formulário de evidência
+  const validarFormularioEvidencia = () => {
+    const erros = [];
+    
+    if (!novaEvidencia.titulo.trim()) {
+      erros.push('Título é obrigatório');
+    }
+    
+    if (!novaEvidencia.descricao.trim()) {
+      erros.push('Descrição é obrigatória');
+    }
+    
+    if (!novaEvidencia.localColeta.trim()) {
+      erros.push('Local de coleta é obrigatório');
+    }
+    
+    if (!novaEvidencia.dataColeta) {
+      erros.push('Data de coleta é obrigatória');
+    }
+    
+    if (!novaEvidencia.arquivo) {
+      erros.push('Arquivo é obrigatório');
+    }
+    
+    // Validar se a data não é futura
+    if (novaEvidencia.dataColeta) {
+      const dataColeta = new Date(novaEvidencia.dataColeta);
+      const hoje = new Date();
+      hoje.setHours(23, 59, 59, 999);
+      
+      if (dataColeta > hoje) {
+        erros.push('Data de coleta não pode ser no futuro');
+      }
+    }
+    
+    return erros;
+  };
+
+  // Função para validar formulário de laudo
+  const validarFormularioLaudo = () => {
+    const erros = [];
+    
+    if (!novoLaudo.texto.trim()) {
+      erros.push('Texto do laudo é obrigatório');
+    }
+    
+    if (novoLaudo.texto.trim().length < 50) {
+      erros.push('Texto do laudo deve ter pelo menos 50 caracteres');
+    }
+    
+    return erros;
+  };
+
+  // Função para carregar dados do caso
   const carregarDadosCaso = async () => {
     try {
       setLoading(true);
@@ -175,9 +257,24 @@ const VerCaso = () => {
 
       // Carregar laudos
       try {
-        const responseLaudos = await api.get(`/api/laudos?casoId=${casoId}`);
+        console.log('🔍 Buscando laudos para caso:', casoId);
+        
+        // Tenta primeiro com query parameter
+        let responseLaudos;
+        try {
+          responseLaudos = await api.get(`/api/laudos?casoId=${casoId}`);
+        } catch (error) {
+          console.log('❌ Tentativa 1 falhou, tentando URL alternativa...');
+          // Se falhar, tenta com parâmetro na URL
+          responseLaudos = await api.get(`/api/laudos/caso/${casoId}`);
+        }
+        
+        console.log('✅ Laudos recebidos:', responseLaudos.data);
         setLaudos(responseLaudos.data);
       } catch (error) {
+        console.error('❌ Erro ao buscar laudos:', error);
+        console.error('❌ Status:', error.response?.status);
+        console.error('❌ Dados:', error.response?.data);
         console.log('Nenhum laudo encontrado para este caso');
         setLaudos([]);
       }
@@ -210,7 +307,6 @@ const VerCaso = () => {
     }
 
     try {
-      // Usar API Nominatim do OpenStreetMap para geocoding
       const query = encodeURIComponent(endereco);
       const response = await fetch(
         `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1&countrycodes=br`,
@@ -246,41 +342,114 @@ const VerCaso = () => {
     }
   };
 
+  // Função para criar evidência
   const handleCriarEvidencia = async (e) => {
     e.preventDefault();
     
     try {
-      const formData = new FormData();
-      formData.append('titulo', novaEvidencia.titulo);
-      formData.append('descricao', novaEvidencia.descricao);
-      formData.append('localColeta', novaEvidencia.localColeta);
-      formData.append('dataColeta', novaEvidencia.dataColeta);
-      formData.append('caso', casoId);
-      
-      if (novaEvidencia.arquivo) {
-        formData.append('arquivo', novaEvidencia.arquivo);
+      const erros = validarFormularioEvidencia();
+      if (erros.length > 0) {
+        alert('Erros encontrados:\n' + erros.join('\n'));
+        return;
       }
 
-      const response = await api.post('/api/evidencias', formData, {
+      console.log('Iniciando criação de evidência...');
+
+      const formData = new FormData();
+      formData.append('titulo', novaEvidencia.titulo.trim());
+      formData.append('descricao', novaEvidencia.descricao.trim());
+      formData.append('localColeta', novaEvidencia.localColeta.trim());
+      formData.append('dataColeta', novaEvidencia.dataColeta);
+      formData.append('caso', casoId);
+      formData.append('arquivo', novaEvidencia.arquivo);
+
+      const response = await uploadApi.post('/api/evidencias', formData, {
         headers: {
-          'Content-Type': 'multipart/form-data'
-        }
+          'Content-Type': 'multipart/form-data',
+        },
+        timeout: 60000,
       });
 
       setShowEvidenciaModal(false);
-      setNovaEvidencia({
-        titulo: '',
-        descricao: '',
-        localColeta: '',
-        dataColeta: '',
-        arquivo: null
-      });
-      carregarDadosCaso();
-      alert('Evidência criada com sucesso!');
+      resetFormularioEvidencia();
+      await carregarDadosCaso();
+      alert('✅ Evidência criada com sucesso!');
+      
     } catch (error) {
-      console.error('Erro ao criar evidência:', error);
-      alert('Erro ao criar evidência: ' + (error.response?.data?.message || error.message));
+      console.error('❌ Erro ao criar evidência:', error);
+      
+      let errorMessage = 'Erro desconhecido ao criar evidência';
+      
+      if (error.response) {
+        errorMessage = error.response.data?.message || error.response.data?.erro || `Erro ${error.response.status}`;
+      } else if (error.request) {
+        errorMessage = 'Erro de conexão com o servidor. Verifique sua internet.';
+      } else {
+        errorMessage = error.message;
+      }
+      
+      alert('❌ Erro ao criar evidência:\n' + errorMessage);
     }
+  };
+
+  // Função para criar laudo
+  const handleCriarLaudo = async (e) => {
+    e.preventDefault();
+    
+    try {
+      const erros = validarFormularioLaudo();
+      if (erros.length > 0) {
+        alert('Erros encontrados:\n' + erros.join('\n'));
+        return;
+      }
+
+      console.log('Criando laudo com dados:', {
+        caso: casoId,
+        evidencias: novoLaudo.evidenciasSelecionadas,
+        texto: novoLaudo.texto
+      });
+
+      const response = await api.post('/api/laudos', {
+        caso: casoId,
+        evidencias: novoLaudo.evidenciasSelecionadas,
+        texto: novoLaudo.texto.trim()
+      });
+
+      console.log('✅ Laudo criado com sucesso:', response.data);
+
+      setShowLaudoModal(false);
+      resetFormularioLaudo();
+      
+      console.log('🔄 Recarregando dados do caso...');
+      await carregarDadosCaso();
+      
+      alert('✅ Laudo criado com sucesso!');
+      
+    } catch (error) {
+      console.error('❌ Erro ao criar laudo:', error);
+      
+      let errorMessage = 'Erro desconhecido ao criar laudo';
+      
+      if (error.response) {
+        errorMessage = error.response.data?.message || `Erro ${error.response.status}`;
+      } else if (error.request) {
+        errorMessage = 'Erro de conexão com o servidor. Verifique sua internet.';
+      } else {
+        errorMessage = error.message;
+      }
+      
+      alert('❌ Erro ao criar laudo:\n' + errorMessage);
+    }
+  };
+
+  // Função para criar laudo para evidência específica
+  const handleCriarLaudoParaEvidencia = (evidencia) => {
+    setEvidenciaParaLaudo(evidencia);
+    setNovoLaudo({
+      evidenciasSelecionadas: [evidencia._id],
+      texto: `Laudo da evidência: ${evidencia.titulo}\n\nDescrição da evidência: ${evidencia.descricao}\n\nLocal de coleta: ${evidencia.localColeta}\nData de coleta: ${formatDate(evidencia.dataColeta)}\n\nAnálise técnica:\n`
+    });
+    setShowLaudoModal(true);
   };
 
   const handleCriarVitima = async (e) => {
@@ -380,6 +549,11 @@ const VerCaso = () => {
   };
 
   const canCreateVictim = () => {
+    if (!currentUser) return false;
+    return ['admin', 'perito'].includes(currentUser.role);
+  };
+
+  const canCreateLaudo = () => {
     if (!currentUser) return false;
     return ['admin', 'perito'].includes(currentUser.role);
   };
@@ -507,13 +681,13 @@ const VerCaso = () => {
       <Box sx={{ 
         minHeight: '100vh',
         background: colors.background,
-        p: 1
+        p: 3
       }}>
         
         {/* Header */}
         <Paper sx={{ 
-          p: 2, 
-          mb: 2,
+          p: 3, 
+          mb: 3,
           border: `1px solid ${colors.secondary}20`,
           boxShadow: `0 4px 24px ${colors.primary}10`,
           borderRadius: 3
@@ -575,7 +749,7 @@ const VerCaso = () => {
 
         {/* Tabs */}
         <Paper sx={{ 
-          mb: 2,
+          mb: 3,
           border: `1px solid ${colors.secondary}20`,
           boxShadow: `0 2px 12px ${colors.primary}08`,
           borderRadius: 3,
@@ -663,7 +837,11 @@ const VerCaso = () => {
               </Box>
 
               <Grid container spacing={3}>
-                {/* Campos: Informações Básicas */}
+                <Grid item xs={12}>
+                  <Typography variant="h6" sx={{ color: colors.primary, fontWeight: 600, mb: 2 }}>
+                  </Typography>
+                </Grid>
+
                 <Grid item xs={12} md={6}>
                   <Typography variant="subtitle2" gutterBottom sx={{ color: colors.primary, fontWeight: 600 }}>
                     Título
@@ -797,15 +975,15 @@ const VerCaso = () => {
                   )}
                 </Grid>
 
-                <Grid item xs={12} sx={{ mt: 8 }}>
+                {/* Título: Localização - Nova linha completa */}
+                <Grid item xs={12} sx={{ mt: 4 }}>
                   <Typography variant="h6" sx={{ color: colors.primary, fontWeight: 600, mb: 2 }}>
-                    {/* espaço em branco visual */}
+                    
                   </Typography>
                 </Grid>
 
-
                 {/* Campos: Localização */}
-                <Grid item xs={12} md={10}>
+                <Grid item xs={12} md={6}>
                   <Typography variant="subtitle2" gutterBottom sx={{ color: colors.primary, fontWeight: 600 }}>
                     Local do Caso
                   </Typography>
@@ -1090,7 +1268,7 @@ const VerCaso = () => {
             </Box>
           )}
 
-          {/* Evidências Tab */}
+          {/* Evidências Tab - SEM BOTÃO DE CRIAR LAUDO */}
           {activeTab === 1 && (
             <Box>
               <Box display="flex" justifyContent="space-between" alignItems="center" mb={3} flexWrap="wrap" gap={2}>
@@ -1153,35 +1331,77 @@ const VerCaso = () => {
                               <Grid container spacing={2}>
                                 <Grid item xs={12} sm={6}>
                                   <Typography variant="body2" sx={{ color: colors.secondary }}>
-                                    <strong>Local:</strong> {evidencia.localColeta}
+                                    <strong>Local de Coleta:</strong> {evidencia.localColeta}
                                   </Typography>
                                 </Grid>
                                 <Grid item xs={12} sm={6}>
                                   <Typography variant="body2" sx={{ color: colors.secondary }}>
-                                    <strong>Data:</strong> {formatDate(evidencia.dataColeta)}
+                                    <strong>Data de Coleta:</strong> {formatDate(evidencia.dataColeta)}
                                   </Typography>
                                 </Grid>
                                 <Grid item xs={12} sm={6}>
                                   <Typography variant="body2" sx={{ color: colors.secondary }}>
-                                    <strong>Tipo:</strong> {evidencia.tipoArquivo}
+                                    <strong>Tipo de Arquivo:</strong> {evidencia.tipoArquivo}
                                   </Typography>
                                 </Grid>
                                 <Grid item xs={12} sm={6}>
                                   <Typography variant="body2" sx={{ color: colors.secondary }}>
-                                    <strong>Criado por:</strong> {evidencia.criadoPor?.name || 'Não informado'}
+                                    <strong>Criado por:</strong> {evidencia.criadoPor?.name || 'Não informado'} ({evidencia.criadoPor?.perfil || 'Perfil não informado'})
+                                  </Typography>
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                  <Typography variant="body2" sx={{ color: colors.secondary }}>
+                                    <strong>Arquivo:</strong> {evidencia.arquivo || 'Arquivo não disponível'}
+                                  </Typography>
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                  <Typography variant="body2" sx={{ color: colors.secondary }}>
+                                    <strong>Criado em:</strong> {formatDate(evidencia.criadoEm)}
                                   </Typography>
                                 </Grid>
                               </Grid>
                             </Box>
-                            <Chip 
-                              label={evidencia.tipoArquivo} 
-                              sx={{
-                                bgcolor: colors.accent,
-                                color: 'white',
-                                fontWeight: 500
-                              }}
-                              size="small" 
-                            />
+                            <Box display="flex" flexDirection="column" gap={1}>
+                              <Chip 
+                                label={evidencia.tipoArquivo} 
+                                sx={{
+                                  bgcolor: evidencia.tipoArquivo === 'imagem' ? '#4CAF50' : '#2196F3',
+                                  color: 'white',
+                                  fontWeight: 500
+                                }}
+                                size="small" 
+                              />
+                              <Chip 
+                                label={evidencia.criadoPor?.perfil || 'Perfil não informado'} 
+                                sx={{
+                                  bgcolor: colors.accent,
+                                  color: 'white',
+                                  fontWeight: 500
+                                }}
+                                size="small" 
+                              />
+                              {canCreateLaudo() && (
+                                <Button
+                                  variant="outlined"
+                                  size="small"
+                                  startIcon={<ClipboardListIcon />}
+                                  onClick={() => handleCriarLaudoParaEvidencia(evidencia)}
+                                  sx={{
+                                    color: colors.primary,
+                                    borderColor: colors.primary,
+                                    fontSize: '0.75rem',
+                                    py: 0.5,
+                                    '&:hover': { 
+                                      borderColor: colors.secondary,
+                                      bgcolor: `${colors.primary}05`
+                                    },
+                                    mt: 1
+                                  }}
+                                >
+                                  Laudo
+                                </Button>
+                              )}
+                            </Box>
                           </Box>
                         </CardContent>
                       </Card>
@@ -1192,12 +1412,49 @@ const VerCaso = () => {
             </Box>
           )}
 
-          {/* Laudos Tab */}
+          {/* Laudos Tab - COM MÚLTIPLAS OPÇÕES DE CRIAÇÃO */}
           {activeTab === 2 && (
             <Box>
-              <Typography variant="h6" gutterBottom sx={{ color: colors.primary, fontWeight: 600 }}>
-                Laudos das Evidências ({laudos.length})
-              </Typography>
+              <Box display="flex" justifyContent="space-between" alignItems="center" mb={3} flexWrap="wrap" gap={2}>
+                <Typography variant="h6" sx={{ color: colors.primary, fontWeight: 600 }}>
+                  Laudos Técnicos ({laudos.length})
+                </Typography>
+                {canCreateLaudo() && evidencias.length > 0 && (
+                  <Box display="flex" gap={1} flexWrap="wrap">
+                    <Button
+                      variant="contained"
+                      startIcon={<PlusIcon />}
+                      onClick={() => setShowLaudoModal(true)}
+                      sx={{
+                        bgcolor: '#2196F3',
+                        '&:hover': { 
+                          bgcolor: '#1976D2',
+                          transform: 'translateY(-1px)',
+                          boxShadow: '0 4px 12px rgba(33, 150, 243, 0.3)'
+                        },
+                        transition: 'all 0.3s ease'
+                      }}
+                    >
+                      Novo Laudo
+                    </Button>
+                  </Box>
+                )}
+              </Box>
+
+              {canCreateLaudo() && evidencias.length > 0 && laudos.length === 0 && (
+                <Box sx={{ mb: 3, p: 2, bgcolor: `${colors.primary}05`, borderRadius: 2, border: `1px solid ${colors.primary}20` }}>
+                  <Typography variant="subtitle2" sx={{ color: colors.primary, fontWeight: 600, mb: 1 }}>
+                    💡 Como criar laudos:
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: colors.secondary }}>
+                    • Use o botão "Novo Laudo" acima para criar um laudo selecionando múltiplas evidências
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: colors.secondary }}>
+                    • Ou vá na aba "Evidências" e clique em "Criar Laudo" em uma evidência específica
+                  </Typography>
+                </Box>
+              )}
+
               {laudos.length === 0 ? (
                 <Box textAlign="center" py={8}>
                   <ClipboardListIcon sx={{ fontSize: 64, color: colors.lightSlateGray, mb: 2 }} />
@@ -1205,7 +1462,12 @@ const VerCaso = () => {
                     Nenhum laudo cadastrado
                   </Typography>
                   <Typography variant="body2" sx={{ color: colors.secondary }}>
-                    Os laudos serão gerados automaticamente após análise das evidências
+                    {canCreateLaudo() && evidencias.length > 0 
+                      ? 'Clique em "Novo Laudo" para criar seu primeiro laudo técnico'
+                      : evidencias.length === 0 
+                        ? 'Cadastre evidências primeiro para poder criar laudos'
+                        : 'Aguardando laudos serem criados por peritos'
+                    }
                   </Typography>
                 </Box>
               ) : (
@@ -1215,18 +1477,84 @@ const VerCaso = () => {
                       <Card sx={{
                         border: `1px solid ${colors.lightSlateGray}40`,
                         boxShadow: `0 2px 8px ${colors.primary}05`,
-                        borderRadius: 2
+                        borderRadius: 2,
+                        '&:hover': {
+                          boxShadow: `0 4px 16px ${colors.primary}10`,
+                          transform: 'translateY(-1px)',
+                          transition: 'all 0.3s ease'
+                        }
                       }}>
                         <CardContent>
-                          <Typography variant="h6" gutterBottom sx={{ color: colors.primary, fontWeight: 600 }}>
-                            Laudo {laudo._id}
-                          </Typography>
-                          <Typography paragraph sx={{ color: colors.secondary }}>
+                          <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
+                            <Typography variant="h6" sx={{ color: colors.primary, fontWeight: 600 }}>
+                              Laudo Técnico #{laudo._id.slice(-6).toUpperCase()}
+                            </Typography>
+                            <Chip 
+                              label={`${laudo.evidencias?.length || 0} evidência(s)`}
+                              sx={{
+                                bgcolor: '#FF9800',
+                                color: 'white',
+                                fontWeight: 500
+                              }}
+                              size="small" 
+                            />
+                          </Box>
+
+                          {laudo.evidencias && laudo.evidencias.length > 0 && (
+                            <Box mb={2}>
+                              <Typography variant="subtitle2" sx={{ color: colors.primary, fontWeight: 600, mb: 1 }}>
+                                Evidências Analisadas:
+                              </Typography>
+                              <Box display="flex" gap={1} flexWrap="wrap">
+                                {laudo.evidencias.map((evidencia) => (
+                                  <Chip
+                                    key={evidencia._id}
+                                    label={evidencia.titulo}
+                                    variant="outlined"
+                                    size="small"
+                                    sx={{
+                                      borderColor: colors.secondary,
+                                      color: colors.secondary,
+                                      '&:hover': {
+                                        borderColor: colors.primary,
+                                        bgcolor: `${colors.primary}05`
+                                      }
+                                    }}
+                                  />
+                                ))}
+                              </Box>
+                            </Box>
+                          )}
+
+                          <Typography 
+                            component="div"
+                            sx={{ 
+                              color: colors.secondary,
+                              mb: 2,
+                              whiteSpace: 'pre-wrap',
+                              lineHeight: 1.6,
+                              bgcolor: `${colors.lightSlateGray}05`,
+                              p: 2,
+                              borderRadius: 1,
+                              border: `1px solid ${colors.lightSlateGray}20`
+                            }}
+                          >
                             {laudo.texto}
                           </Typography>
-                          <Typography variant="body2" sx={{ color: colors.lightSlateGray }}>
-                            Criado em: {formatDate(laudo.criadoEm)}
-                          </Typography>
+
+                          <Divider sx={{ my: 2 }} />
+                          <Grid container spacing={2}>
+                            <Grid item xs={12} sm={6}>
+                              <Typography variant="body2" sx={{ color: colors.lightSlateGray }}>
+                                <strong>Autor:</strong> {laudo.autor?.name || 'Não informado'}
+                              </Typography>
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                              <Typography variant="body2" sx={{ color: colors.lightSlateGray }}>
+                                <strong>Criado em:</strong> {formatDate(laudo.criadoEm)}
+                              </Typography>
+                            </Grid>
+                          </Grid>
                         </CardContent>
                       </Card>
                     </Grid>
@@ -1236,7 +1564,7 @@ const VerCaso = () => {
             </Box>
           )}
 
-          {/* Vítimas Tab */}
+         {/* Vítimas Tab */}
           {activeTab === 3 && (
             <Box>
               <Box display="flex" justifyContent="space-between" alignItems="center" mb={3} flexWrap="wrap" gap={2}>
@@ -1288,32 +1616,85 @@ const VerCaso = () => {
                         }
                       }}>
                         <CardContent>
-                          <Grid container spacing={3}>
-                            <Grid item xs={12} md={4}>
-                              <Typography variant="h6" sx={{ color: colors.primary, fontWeight: 600 }}>
-                                {vitima.nome}
-                              </Typography>
-                              <Typography sx={{ color: colors.secondary }}>
-                                <strong>NIC:</strong> {vitima.nic}
-                              </Typography>
-                              <Typography sx={{ color: colors.secondary }}>
-                                <strong>Idade:</strong> {vitima.idade} anos
-                              </Typography>
+                          <Box display="flex" justifyContent="space-between" alignItems="flex-start" flexWrap="wrap" gap={2}>
+                            <Grid container spacing={3} sx={{ flex: 1 }}>
+                              <Grid item xs={12} md={4}>
+                                <Typography variant="h6" sx={{ color: colors.primary, fontWeight: 600 }}>
+                                  {vitima.nome}
+                                </Typography>
+                                <Typography sx={{ color: colors.secondary }}>
+                                  <strong>NIC:</strong> {vitima.nic}
+                                </Typography>
+                                <Typography sx={{ color: colors.secondary }}>
+                                  <strong>Idade:</strong> {vitima.idade} anos
+                                </Typography>
+                              </Grid>
+                              <Grid item xs={12} md={4}>
+                                <Typography sx={{ color: colors.secondary }}>
+                                  <strong>Gênero:</strong> {vitima.genero}
+                                </Typography>
+                                <Typography sx={{ color: colors.secondary }}>
+                                  <strong>Documento:</strong> {vitima.documento?.tipo?.toUpperCase()} {vitima.documento?.numero}
+                                </Typography>
+                              </Grid>
+                              <Grid item xs={12} md={4}>
+                                <Typography sx={{ color: colors.secondary }}>
+                                  <strong>Cor/Etnia:</strong> {vitima.corEtnia}
+                                </Typography>
+                              </Grid>
                             </Grid>
-                            <Grid item xs={12} md={4}>
-                              <Typography sx={{ color: colors.secondary }}>
-                                <strong>Gênero:</strong> {vitima.genero}
-                              </Typography>
-                              <Typography sx={{ color: colors.secondary }}>
-                                <strong>Documento:</strong> {vitima.documento?.tipo?.toUpperCase()} {vitima.documento?.numero}
-                              </Typography>
-                            </Grid>
-                            <Grid item xs={12} md={4}>
-                              <Typography sx={{ color: colors.secondary }}>
-                                <strong>Cor/Etnia:</strong> {vitima.corEtnia}
-                              </Typography>
-                            </Grid>
-                          </Grid>
+                            
+                            {/* Botões de ação */}
+                            <Box display="flex" flexDirection="column" gap={1} sx={{ minWidth: 120 }}>
+                              {/* Botão Odontograma */}
+                              {canCreateVictim() && (
+                                <Button
+                      variant="contained"
+                       size="small"
+                       startIcon={<EyeIcon />}  // ← Mudança aqui
+                       onClick={() => navigate(`/vitimas/${vitima._id}/odontograma`)}
+                       sx={{
+                            bgcolor: '#2196F3',
+                            color: 'white',
+                            fontSize: '0.75rem',
+                            py: 0.8,
+                            '&:hover': { 
+                            bgcolor: '#1976D2',
+                            transform: 'translateY(-1px)',
+                            boxShadow: '0 4px 12px rgba(33, 150, 243, 0.3)'
+                        },
+                            transition: 'all 0.3s ease'
+                        }}
+                           >
+                            Odontograma
+                               </Button>
+                        )}
+                              
+                              {/* Indicadores de status */}
+                              <Box display="flex" flexDirection="column" gap={0.5}>
+                                <Chip 
+                                  label={vitima.genero} 
+                                  sx={{
+                                    bgcolor: vitima.genero === 'masculino' ? '#2196F3' : vitima.genero === 'feminino' ? '#E91E63' : '#9C27B0',
+                                    color: 'white',
+                                    fontWeight: 500,
+                                    fontSize: '0.7rem'
+                                  }}
+                                  size="small" 
+                                />
+                                <Chip 
+                                  label={`${vitima.idade} anos`} 
+                                  sx={{
+                                    bgcolor: colors.accent,
+                                    color: 'white',
+                                    fontWeight: 500,
+                                    fontSize: '0.7rem'
+                                  }}
+                                  size="small" 
+                                />
+                              </Box>
+                            </Box>
+                          </Box>
                         </CardContent>
                       </Card>
                     </Grid>
@@ -1443,7 +1824,7 @@ const VerCaso = () => {
             <Box component="form" sx={{ mt: 1 }}>
               <TextField
                 fullWidth
-                label="Título *"
+                label="Título da Evidência *"
                 value={novaEvidencia.titulo}
                 onChange={(e) => setNovaEvidencia({...novaEvidencia, titulo: e.target.value})}
                 margin="normal"
@@ -1458,7 +1839,7 @@ const VerCaso = () => {
               
               <TextField
                 fullWidth
-                label="Descrição *"
+                label="Descrição da Evidência *"
                 multiline
                 rows={3}
                 value={novaEvidencia.descricao}
@@ -1497,6 +1878,9 @@ const VerCaso = () => {
                 margin="normal"
                 InputLabelProps={{ shrink: true }}
                 required
+                inputProps={{
+                  max: new Date().toISOString().split('T')[0]
+                }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     '&:hover fieldset': { borderColor: colors.secondary },
@@ -1505,37 +1889,65 @@ const VerCaso = () => {
                 }}
               />
               
-              <Button
-                component="label"
-                variant="outlined"
-                fullWidth
-                sx={{ 
-                  mt: 2,
-                  color: colors.primary,
-                  borderColor: colors.primary,
-                  '&:hover': { 
-                    borderColor: colors.secondary,
-                    bgcolor: `${colors.primary}05`
-                  }
-                }}
-              >
-                Selecionar Arquivo *
-                <input
-                  type="file"
-                  hidden
-                  onChange={(e) => setNovaEvidencia({...novaEvidencia, arquivo: e.target.files[0]})}
-                />
-              </Button>
-              {novaEvidencia.arquivo && (
-                <Typography variant="body2" sx={{ mt: 1, color: colors.secondary }}>
-                  Arquivo selecionado: {novaEvidencia.arquivo.name}
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="body2" sx={{ mb: 1, color: colors.primary, fontWeight: 600 }}>
+                  Arquivo da Evidência *
                 </Typography>
-              )}
+                <Button
+                  component="label"
+                  variant="outlined"
+                  fullWidth
+                  sx={{ 
+                    py: 2,
+                    color: colors.primary,
+                    borderColor: colors.primary,
+                    borderStyle: 'dashed',
+                    '&:hover': { 
+                      borderColor: colors.secondary,
+                      bgcolor: `${colors.primary}05`,
+                      borderStyle: 'dashed'
+                    }
+                  }}
+                >
+                  {novaEvidencia.arquivo ? 
+                    `📎 ${novaEvidencia.arquivo.name}` : 
+                    '📁 Clique para selecionar arquivo'
+                  }
+                  <input
+                    type="file"
+                    hidden
+                    accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.txt"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        if (file.size > 10 * 1024 * 1024) {
+                          alert('Arquivo muito grande. Máximo 10MB permitido.');
+                          return;
+                        }
+                        setNovaEvidencia({...novaEvidencia, arquivo: file});
+                      }
+                    }}
+                  />
+                </Button>
+                {novaEvidencia.arquivo && (
+                  <Box sx={{ mt: 1, p: 2, bgcolor: `${colors.lightSlateGray}10`, borderRadius: 1 }}>
+                    <Typography variant="body2" sx={{ color: colors.secondary }}>
+                      <strong>Arquivo:</strong> {novaEvidencia.arquivo.name}
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: colors.lightSlateGray }}>
+                      <strong>Tamanho:</strong> {(novaEvidencia.arquivo.size / 1024 / 1024).toFixed(2)} MB
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
             </Box>
           </DialogContent>
           <DialogActions sx={{ p: 3 }}>
             <Button 
-              onClick={() => setShowEvidenciaModal(false)}
+              onClick={() => {
+                setShowEvidenciaModal(false);
+                resetFormularioEvidencia();
+              }}
               sx={{ color: colors.secondary }}
             >
               Cancelar
@@ -1549,7 +1961,7 @@ const VerCaso = () => {
                 '&:hover': { bgcolor: colors.primary }
               }}
             >
-              Criar
+              Criar Evidência
             </Button>
           </DialogActions>
         </Dialog>
@@ -1809,6 +2221,130 @@ const VerCaso = () => {
               }}
             >
               Finalizar Caso
+            </Button>
+          </DialogActions>
+        </Dialog>
+        <Dialog 
+          open={showLaudoModal} 
+          onClose={() => setShowLaudoModal(false)} 
+          maxWidth="md" 
+          fullWidth
+          PaperProps={{
+            sx: {
+              borderRadius: 3,
+              boxShadow: `0 24px 48px ${colors.primary}20`
+            }
+          }}
+        >
+          <DialogTitle sx={{ 
+            bgcolor: colors.primary, 
+            color: 'white',
+            fontWeight: 600
+          }}>
+            {evidenciaParaLaudo ? `Criar Laudo - ${evidenciaParaLaudo.titulo}` : 'Novo Laudo Técnico'}
+          </DialogTitle>
+          <DialogContent sx={{ p: 3 }}>
+            <Box component="form" sx={{ mt: 1 }}>
+              {!evidenciaParaLaudo && (
+                <Box mb={3}>
+                  <Typography variant="subtitle2" gutterBottom sx={{ color: colors.primary, fontWeight: 600 }}>
+                    Evidências a serem analisadas *
+                  </Typography>
+                  <Box sx={{ maxHeight: 200, overflow: 'auto', border: `1px solid ${colors.lightSlateGray}40`, borderRadius: 1, p: 1 }}>
+                    {evidencias.map((evidencia) => (
+                      <Box
+                        key={evidencia._id}
+                        sx={{
+                          p: 1,
+                          mb: 1,
+                          borderRadius: 1,
+                          border: `1px solid ${colors.lightSlateGray}20`,
+                          cursor: 'pointer',
+                          bgcolor: novoLaudo.evidenciasSelecionadas.includes(evidencia._id) ? `${colors.primary}10` : 'transparent',
+                          '&:hover': {
+                            bgcolor: `${colors.primary}05`
+                          }
+                        }}
+                        onClick={() => {
+                          const isSelected = novoLaudo.evidenciasSelecionadas.includes(evidencia._id);
+                          const newSelection = isSelected
+                            ? novoLaudo.evidenciasSelecionadas.filter(id => id !== evidencia._id)
+                            : [...novoLaudo.evidenciasSelecionadas, evidencia._id];
+                          
+                          setNovoLaudo({...novoLaudo, evidenciasSelecionadas: newSelection});
+                        }}
+                      >
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <Box
+                            sx={{
+                              width: 16,
+                              height: 16,
+                              borderRadius: '50%',
+                              border: `2px solid ${colors.primary}`,
+                              bgcolor: novoLaudo.evidenciasSelecionadas.includes(evidencia._id) ? colors.primary : 'transparent'
+                            }}
+                          />
+                          <Box flex={1}>
+                            <Typography variant="body2" sx={{ fontWeight: 600, color: colors.primary }}>
+                              {evidencia.titulo}
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: colors.secondary }}>
+                              {evidencia.tipoArquivo} - {formatDate(evidencia.dataColeta)}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </Box>
+                    ))}
+                  </Box>
+                </Box>
+              )}
+
+              <TextField
+                fullWidth
+                label="Texto do Laudo Técnico *"
+                multiline
+                rows={evidenciaParaLaudo ? 15 : 12}
+                value={novoLaudo.texto}
+                onChange={(e) => setNovoLaudo({...novoLaudo, texto: e.target.value})}
+                placeholder="Digite a análise técnica detalhada das evidências..."
+                required
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': { borderColor: colors.secondary },
+                    '&.Mui-focused fieldset': { borderColor: colors.primary }
+                  }
+                }}
+              />
+              
+              <Typography variant="caption" sx={{ color: colors.lightSlateGray, mt: 1, display: 'block' }}>
+                Mínimo 50 caracteres. Atual: {novoLaudo.texto.length} caracteres
+              </Typography>
+            </Box>
+          </DialogContent>
+          <DialogActions sx={{ p: 3 }}>
+            <Button 
+              onClick={() => {
+                setShowLaudoModal(false);
+                resetFormularioLaudo();
+              }}
+              sx={{ color: colors.secondary }}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleCriarLaudo}
+              variant="contained"
+              disabled={
+                !novoLaudo.texto.trim() || 
+                novoLaudo.texto.length < 50 || 
+                (!evidenciaParaLaudo && novoLaudo.evidenciasSelecionadas.length === 0)
+              }
+              sx={{
+                bgcolor: colors.steelBlue,
+                '&:hover': { bgcolor: colors.primary }
+              }}
+            >
+              Criar Laudo
             </Button>
           </DialogActions>
         </Dialog>
