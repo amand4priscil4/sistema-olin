@@ -22,7 +22,11 @@ import {
   CircularProgress,
   Card,
   CardContent,
-  Divider
+  Divider,
+  IconButton,
+  Modal,
+  Backdrop,
+  Fade
 } from '@mui/material';
 import {
   Visibility as EyeIcon,
@@ -41,7 +45,12 @@ import {
   Close as XIcon,
   ArrowBack as ArrowLeftIcon,
   Download as DownloadIcon,
-  Archive as ArchiveIcon
+  Archive as ArchiveIcon,
+  Visibility as ViewIcon,
+  Close as CloseIcon,
+  Image as ImageIcon,
+  PictureAsPdf as PdfIcon,
+  Description as FileIcon
 } from '@mui/icons-material';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -89,6 +98,326 @@ L.Icon.Default.mergeOptions({
   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
+
+// Componente para visualização de evidências
+const EvidenceViewer = ({ evidencia }) => {
+  const [modalOpen, setModalOpen] = useState(false);
+  
+  // Função para determinar se é uma URL do Cloudinary completa
+  const isCloudinaryUrl = (url) => {
+    return url && (url.startsWith('http') || url.startsWith('https'));
+  };
+  
+  // Função para construir URL completa do Cloudinary se necessário
+  const getFileUrl = (arquivo) => {
+    if (!arquivo) return null;
+    
+    // Se já é uma URL completa, retorna como está
+    if (isCloudinaryUrl(arquivo)) {
+      return arquivo;
+    }
+    
+    // Se é apenas o nome do arquivo, constrói a URL do Cloudinary
+    // AJUSTE ESTA URL CONFORME SEU CLOUDINARY
+    const cloudinaryBaseUrl = "https://res.cloudinary.com/SEU_CLOUD_NAME/image/upload/";
+    return `${cloudinaryBaseUrl}${arquivo}`;
+  };
+  
+  // Função para determinar tipo de arquivo
+  const getFileType = (arquivo, tipoArquivo) => {
+    if (!arquivo) return 'unknown';
+    
+    const fileUrl = getFileUrl(arquivo);
+    const extension = fileUrl.split('.').pop()?.toLowerCase();
+    
+    // Primeiro verifica pela extensão
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension)) {
+      return 'image';
+    }
+    if (['pdf'].includes(extension)) {
+      return 'pdf';
+    }
+    
+    // Depois verifica pelo tipo informado no banco
+    if (tipoArquivo === 'imagem') return 'image';
+    if (tipoArquivo === 'documento') return 'pdf';
+    
+    return 'document';
+  };
+  
+  // Função para baixar arquivo
+  const handleDownload = () => {
+    const fileUrl = getFileUrl(evidencia.arquivo);
+    if (fileUrl) {
+      const link = document.createElement('a');
+      link.href = fileUrl;
+      link.download = evidencia.titulo || 'evidencia';
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+  
+  // Função para abrir modal de visualização
+  const handleView = () => {
+    setModalOpen(true);
+  };
+  
+  const fileType = getFileType(evidencia.arquivo, evidencia.tipoArquivo);
+  const fileUrl = getFileUrl(evidencia.arquivo);
+  
+  if (!fileUrl) {
+    return (
+      <Typography variant="body2" sx={{ color: colors.secondary }}>
+        <strong>Arquivo:</strong> Arquivo não disponível
+      </Typography>
+    );
+  }
+  
+  return (
+    <Box>
+      <Typography variant="body2" sx={{ color: colors.secondary, mb: 1 }}>
+        <strong>Arquivo:</strong>
+      </Typography>
+      
+      {/* Preview para imagens */}
+      {fileType === 'image' && (
+        <Box sx={{ mb: 2 }}>
+          <Box
+            sx={{
+              width: '100%',
+              maxWidth: 300,
+              height: 200,
+              borderRadius: 2,
+              overflow: 'hidden',
+              border: `1px solid ${colors.lightGray}40`,
+              cursor: 'pointer',
+              '&:hover': {
+                boxShadow: `0 4px 16px ${colors.primary}20`,
+                transform: 'scale(1.02)',
+                transition: 'all 0.3s ease'
+              }
+            }}
+            onClick={handleView}
+          >
+            <img
+              src={fileUrl}
+              alt={evidencia.titulo}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover'
+              }}
+              onError={(e) => {
+                e.target.style.display = 'none';
+                e.target.nextSibling.style.display = 'flex';
+              }}
+            />
+            <Box
+              sx={{
+                width: '100%',
+                height: '100%',
+                display: 'none',
+                alignItems: 'center',
+                justifyContent: 'center',
+                bgcolor: colors.paleGray,
+                color: colors.secondary
+              }}
+            >
+              <ImageIcon sx={{ fontSize: 48 }} />
+            </Box>
+          </Box>
+        </Box>
+      )}
+      
+      {/* Preview para PDFs */}
+      {fileType === 'pdf' && (
+        <Box sx={{ mb: 2 }}>
+          <Box
+            sx={{
+              width: '100%',
+              maxWidth: 300,
+              height: 200,
+              borderRadius: 2,
+              border: `1px solid ${colors.lightGray}40`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              bgcolor: `${colors.accent}10`,
+              cursor: 'pointer',
+              '&:hover': {
+                bgcolor: `${colors.accent}20`,
+                transform: 'scale(1.02)',
+                transition: 'all 0.3s ease'
+              }
+            }}
+            onClick={handleView}
+          >
+            <Box textAlign="center">
+              <PdfIcon sx={{ fontSize: 64, color: colors.accent, mb: 1 }} />
+              <Typography variant="body2" sx={{ color: colors.primary, fontWeight: 600 }}>
+                Clique para visualizar PDF
+              </Typography>
+            </Box>
+          </Box>
+        </Box>
+      )}
+      
+      {/* Preview para outros documentos */}
+      {fileType === 'document' && (
+        <Box sx={{ mb: 2 }}>
+          <Box
+            sx={{
+              width: '100%',
+              maxWidth: 300,
+              height: 200,
+              borderRadius: 2,
+              border: `1px solid ${colors.lightGray}40`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              bgcolor: `${colors.secondary}10`,
+              cursor: 'pointer',
+              '&:hover': {
+                bgcolor: `${colors.secondary}20`,
+                transform: 'scale(1.02)',
+                transition: 'all 0.3s ease'
+              }
+            }}
+            onClick={handleDownload}
+          >
+            <Box textAlign="center">
+              <FileIcon sx={{ fontSize: 64, color: colors.secondary, mb: 1 }} />
+              <Typography variant="body2" sx={{ color: colors.primary, fontWeight: 600 }}>
+                Clique para baixar
+              </Typography>
+            </Box>
+          </Box>
+        </Box>
+      )}
+      
+      {/* Botões de ação */}
+      <Box display="flex" gap={1} flexWrap="wrap">
+        <Button
+          variant="outlined"
+          size="small"
+          startIcon={<ViewIcon />}
+          onClick={handleView}
+          sx={{
+            color: colors.primary,
+            borderColor: colors.primary,
+            '&:hover': { 
+              borderColor: colors.secondary,
+              bgcolor: `${colors.primary}05`
+            }
+          }}
+        >
+          Visualizar
+        </Button>
+        <Button
+          variant="outlined"
+          size="small"
+          startIcon={<DownloadIcon />}
+          onClick={handleDownload}
+          sx={{
+            color: colors.secondary,
+            borderColor: colors.secondary,
+            '&:hover': { 
+              borderColor: colors.primary,
+              bgcolor: `${colors.secondary}05`
+            }
+          }}
+        >
+          Baixar
+        </Button>
+      </Box>
+      
+      {/* Modal para visualização em tela cheia */}
+      <Modal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        closeAfterTransition
+        BackdropComponent={Backdrop}
+        BackdropProps={{ timeout: 500 }}
+      >
+        <Fade in={modalOpen}>
+          <Box
+            sx={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: '90vw',
+              height: '90vh',
+              bgcolor: 'white',
+              borderRadius: 3,
+              boxShadow: `0 24px 48px ${colors.primary}30`,
+              p: 2,
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden'
+            }}
+          >
+            {/* Header do modal */}
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+              <Typography variant="h6" sx={{ color: colors.primary, fontWeight: 600 }}>
+                {evidencia.titulo}
+              </Typography>
+              <IconButton
+                onClick={() => setModalOpen(false)}
+                sx={{ color: colors.secondary }}
+              >
+                <CloseIcon />
+              </IconButton>
+            </Box>
+            
+            {/* Conteúdo do modal */}
+            <Box flex={1} sx={{ overflow: 'hidden', borderRadius: 2 }}>
+              {fileType === 'image' && (
+                <img
+                  src={fileUrl}
+                  alt={evidencia.titulo}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'contain',
+                    borderRadius: 8
+                  }}
+                />
+              )}
+              
+              {fileType === 'pdf' && (
+                <iframe
+                  src={fileUrl}
+                  width="100%"
+                  height="100%"
+                  style={{ border: 'none', borderRadius: 8 }}
+                  title={evidencia.titulo}
+                />
+              )}
+            </Box>
+            
+            {/* Footer do modal */}
+            <Box mt={2} display="flex" justifyContent="center">
+              <Button
+                variant="contained"
+                startIcon={<DownloadIcon />}
+                onClick={handleDownload}
+                sx={{
+                  bgcolor: colors.charcoal,
+                  '&:hover': { bgcolor: colors.primary }
+                }}
+              >
+                Baixar Arquivo
+              </Button>
+            </Box>
+          </Box>
+        </Fade>
+      </Modal>
+    </Box>
+  );
+};
 
 const VerCaso = () => {
   const { id: casoId } = useParams();
@@ -1372,13 +1701,13 @@ const VerCaso = () => {
                                 </Grid>
                                 <Grid item xs={12} sm={6}>
                                   <Typography variant="body2" sx={{ color: colors.secondary }}>
-                                    <strong>Arquivo:</strong> {evidencia.arquivo || 'Arquivo não disponível'}
-                                  </Typography>
-                                </Grid>
-                                <Grid item xs={12} sm={6}>
-                                  <Typography variant="body2" sx={{ color: colors.secondary }}>
                                     <strong>Criado em:</strong> {formatDate(evidencia.criadoEm)}
                                   </Typography>
+                                </Grid>
+                                
+                                {/* NOVA SEÇÃO PARA VISUALIZAÇÃO DO ARQUIVO */}
+                                <Grid item xs={12}>
+                                  <EvidenceViewer evidencia={evidencia} />
                                 </Grid>
                               </Grid>
                             </Box>
@@ -1821,7 +2150,6 @@ const VerCaso = () => {
           )}
         </Paper>
 
-        {/* Modais mantendo estilo com nova paleta */}
         {/* Modal Nova Evidência */}
         <Dialog 
           open={showEvidenciaModal} 
