@@ -272,12 +272,12 @@ function Casos() {
 
     try {
 
-      console.log('🗑️ Tentando deletar caso:', casoToDelete._id);
-      console.log('🔗 URL completa:', `/api/casos/${casoToDelete._id}`);
+      console.log(' Tentando deletar caso:', casoToDelete._id);
+      console.log(' URL completa:', `/api/casos/${casoToDelete._id}`);
     
       // Verificar se o token está presente
       const token = localStorage.getItem('token');
-      console.log('🔑 Token presente:', !!token);
+      console.log(' Token presente:', !!token);
 
       await api.delete(`/api/casos/${casoToDelete._id}`);
       setCasos(prev => prev.filter(c => c._id !== casoToDelete._id));
@@ -338,7 +338,6 @@ function Casos() {
       <Box sx={{ 
         minHeight: '100vh',
         background: colors.background,
-        overflowX: 'hidden',
         width: '100%' 
       }}>
         
