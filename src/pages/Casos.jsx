@@ -271,7 +271,7 @@ function Casos() {
     if (!casoToDelete) return;
 
     try {
-      await api.delete(`/casos/${casoToDelete._id}`);
+      await api.delete(`/api/casos/${casoToDelete._id}`);
       setCasos(prev => prev.filter(c => c._id !== casoToDelete._id));
       setDeleteDialogOpen(false);
       setCasoToDelete(null);
@@ -347,7 +347,7 @@ function Casos() {
 
         {/* Header Actions */}
         <Grid container spacing={2} sx={{ mb: 3, alignItems: 'center' }}>
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12} md={2}>
             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
               <Button
                 variant="contained"
@@ -466,15 +466,17 @@ function Casos() {
           <>
             {/* Table */}
             <Paper sx={{ 
-              flex: 1, 
               overflow: 'hidden',
               border: '1px solid rgba(164, 181, 196, 0.2)',
               boxShadow: '0 4px 24px rgba(7, 23, 57, 0.06)',
-              borderRadius: 3,
-              minHeight: '60vh'
+              borderRadius: 3
             }}>
-              <TableContainer sx={{ height: '60vh' }}>
-                <Table stickyHeader>
+              <TableContainer sx={{
+                height: 'auto !important',
+                maxHeight: 'none !important',
+                overflow: 'visible !important'
+              }}>
+                <Table>
                   <TableHead>
                     <TableRow>
                       <TableCell sx={{ 

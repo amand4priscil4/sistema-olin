@@ -1691,7 +1691,7 @@ const VerCaso = () => {
                                 </Button>
                               )}
                               
-                              {/* Indicadores de status - MANTÉM CORES ORIGINAIS */}
+                              {/* Indicadores de status */}
                               <Box display="flex" flexDirection="column" gap={0.5}>
                                 <Chip 
                                   label={vitima.genero} 
