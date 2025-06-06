@@ -271,6 +271,14 @@ function Casos() {
     if (!casoToDelete) return;
 
     try {
+
+      console.log('🗑️ Tentando deletar caso:', casoToDelete._id);
+      console.log('🔗 URL completa:', `/api/casos/${casoToDelete._id}`);
+    
+      // Verificar se o token está presente
+      const token = localStorage.getItem('token');
+      console.log('🔑 Token presente:', !!token);
+
       await api.delete(`/api/casos/${casoToDelete._id}`);
       setCasos(prev => prev.filter(c => c._id !== casoToDelete._id));
       setDeleteDialogOpen(false);
