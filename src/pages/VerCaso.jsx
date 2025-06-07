@@ -118,8 +118,7 @@ const EvidenceViewer = ({ evidencia }) => {
     }
     
     // Se é apenas o nome do arquivo, constrói a URL do Cloudinary
-    // AJUSTE ESTA URL CONFORME SEU CLOUDINARY
-    const cloudinaryBaseUrl = "https://res.cloudinary.com/SEU_CLOUD_NAME/image/upload/";
+    const cloudinaryBaseUrl = "https://res.cloudinary.com/de2mpeygq/image/upload/";
     return `${cloudinaryBaseUrl}${arquivo}`;
   };
   
@@ -941,7 +940,7 @@ const VerCaso = () => {
     return false;
   };
 
-  // MANTÉM AS CORES ORIGINAIS DOS STATUS
+  // status
   const getStatusIcon = (status) => {
     switch (status) {
       case 'em andamento':
@@ -1996,7 +1995,7 @@ const VerCaso = () => {
                             
                             {/* Botões de ação */}
                             <Box display="flex" flexDirection="column" gap={1} sx={{ minWidth: 120 }}>
-                              {/* Botão Odontograma */}
+                                {/* Botão Odontograma */}
                               {canCreateVictim() && (
                                 <Button
                                   variant="contained"
@@ -2017,6 +2016,24 @@ const VerCaso = () => {
                                   }}
                                 >
                                   Odontograma
+                                </Button>
+                              )}
+                              {/* Botão Marcações Anatômicas */}
+                              {canCreateVictim() && (
+                                <Button
+                                  variant="contained"
+                                  startIcon={<UserIcon />} // Alterado para PersonIcon, mas UserIcon já existe e parece adequado.
+                                  onClick={() => navigate(`/vitimas/${vitima._id}/marcacoes-anatomicas`)}
+                                  sx={{
+                                    bgcolor: colors.accent,
+                                    color: 'white',
+                                    fontSize: '0.75rem', // Adicionado para consistência
+                                    py: 0.8, // Adicionado para consistência
+                                    mt: 1, // Adicionado espaçamento superior
+                                    '&:hover': { bgcolor: colors.primary }
+                                  }}
+                                >
+                                  Marcações Anatômicas
                                 </Button>
                               )}
                               

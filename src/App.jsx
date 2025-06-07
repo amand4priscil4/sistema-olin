@@ -14,6 +14,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import VerCaso from './pages/VerCaso';
 import Odontograma from './pages/Odontograma';
 import VisualizarLaudoOdontologico from './pages/VisualizarLaudoOdontologico';
+import MarcacoesAnatomicas from './pages/MarcacoesAnatomicas';
 
 // Tema inline como fallback
 import { createTheme } from '@mui/material/styles';
@@ -87,6 +88,11 @@ function App() {
                 <BancodeCasos />
               </ProtectedRoute>
             } 
+          />
+
+          <Route 
+            path="/vitimas/:vitimaId/marcacoes-anatomicas" 
+            element={<MarcacoesAnatomicas />} 
           />
           
           <Route 
